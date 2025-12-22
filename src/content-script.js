@@ -676,6 +676,7 @@ async function handleInstantTranslate(element) {
 }
 
 function registerInstantMode() {
+  // Listen for input changes
   document.addEventListener('input', async (e) => {
     const element = getActiveEditableElement();
     if (!element) return;
@@ -688,5 +689,28 @@ function registerInstantMode() {
     if (TRANSLATION_COMMAND_PATTERN.test(text)) return;
     
     handleInstantTranslate(element);
+  }, true);
+  
+  // Listen for Enter key to cancel instant translate
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      // User wants to send message immediately, cancel any pending translation
+      if (instantTimer) {
+        clearTimeout(instantTimer);
+        instantTimer = null;
+      }
+      
+      // Dismiss any visible suggestion
+      if (currentSuggestion) {
+        currentSuggestion.destroy();
+        currentSuggestion = null;
+      }
+      
+      // Remove keyboard handler if active
+      if (currentKeyHandler) {
+        document.removeEventListener("keydown", currentKeyHandler, true);
+        currentKeyHandler = null;
+      }
+    }
   }, true);
 }
