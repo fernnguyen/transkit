@@ -16,7 +16,7 @@ Currently, BangBang Translate is available for installation via "Load Unpacked" 
 
 1.  **Clone the repository**:
     ```bash
-    git clone http://github.com/FernNguyen/bangbang-translate.git
+    git clone http://github.com/fernnguyen/bangbang-translate.git
     ```
 2.  **Open Chrome Extensions**:
     - Navigate to `chrome://extensions/` in your browser.
@@ -51,4 +51,4 @@ Click the extension icon in the toolbar to access settings:
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](license) file for details.
+This project is licensed under the MIT License.
