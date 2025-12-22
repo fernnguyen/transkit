@@ -131,7 +131,7 @@
     .bt-shortcut {
       font-size: 0.625rem;
       font-weight: 600;
-      text-transform: uppercase;
+      /* text-transform: uppercase; */
       color: var(--bt-color-text-muted);
       letter-spacing: 0.05em;
     }

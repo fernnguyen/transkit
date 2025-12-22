@@ -7,8 +7,8 @@ Thank you for your interest in contributing to BangBang Translate! We welcome co
 1.  **Fork the repository** on GitHub.
 2.  **Clone your fork** locally:
     ```bash
-    git clone https://github.com/YOUR_USERNAME/bridge-translate.git
-    cd bridge-translate
+    git clone https://github.com/fernnguyen/bangbang-translate.git
+    cd bangbang-translate
     ```
 3.  **Install dependencies**:
     ```bash

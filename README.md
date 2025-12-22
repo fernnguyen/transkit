@@ -4,11 +4,13 @@
 
 ## Features
 
-- **Instant Translation**: Translate text directly within any input field or textarea.
-- **AI-Powered**: Uses Chrome's built-in AI (Gemini Nano) for fast, local, and private translations.
-- **Privacy-First**: All translations happen locally on your device. No data is sent to the cloud.
-- **Seamless Integration**: Works on any website with standard input fields.
-- **Customizable**: Set your preferred native language and translation behavior.
+- **Instant Translation**: Type `!!<lang>` or `!!t` after your text to translate instantly
+- **Instant Domain Mode**: Auto-translate on specific domains (chat apps, AI assistants) with inline suggestions
+- **Smart Language Detection**: Automatically detects source language
+- **Customizable Aliases**: Create shortcuts for your most-used languages
+- **Non-blocking UI**: Continue working while translations process
+- **Keyboard Shortcuts**: Quick actions with Tab and Esc keys
+- **Privacy-First**: All processing happens locally using Chrome's built-in AI
 
 ## Installation
 
@@ -30,24 +32,71 @@ Currently, BangBang Translate is available for installation via "Load Unpacked" 
 
 ## Usage
 
-1.  **Type your text** in any input field or textarea.
-2.  **Append the translation command**: `!!<code/alias>` or `!!t` (default target).
-    - Example: `Hello world !!es` (translates to Spanish)
-    - Example: `Bom dia !!en` (translates to English)
-    - Example: `Hello !!t` (translates to your default target language)
-    - Example: `Hello !!e` (uses your custom alias 'e')
-3.  **Confirm or Revert**:
-    - **Manual Mode**: A modal appears. Press **Enter** to replace.
-    - **Auto Mode**: Text is replaced immediately. A dialog appears for 10s (configurable) allowing you to **Revert** if needed.
+### Manual Translation Mode
 
-### Popup Settings
+Type your text in any input field, then add the translation command:
 
-Click the extension icon in the toolbar to access settings:
-- **Native Language**: Select your native language.
-- **Default Target**: Select the language for `!!t`.
-- **Revert Timeout**: Set how long the undo dialog stays visible.
-- **Aliases**: Define custom shortcuts (e.g., `e` -> `en`).
-- **History**: View your recent translations.
+```
+Hello, how are you? !!vi
+→ Xin chào, bạn khỏe không?
+
+Tôi đang học tiếng Anh !!en
+→ I am learning English
+
+Quick translate to default target: !!t
+```
+
+### Instant Domain Translation Mode
+
+Enable in settings for automatic translation on specific domains (Telegram, Discord, ChatGPT, etc.):
+
+1. Open extension popup
+2. Enable "Instant Translate for specific domains"
+3. Configure delay (default: 3 seconds)
+4. Manage domains and their popup position (top/bottom)
+5. Visit an enabled domain and start typing
+
+**How it works:**
+- Type your message normally
+- Wait for configured delay (no need to add `!!`)
+- Inline suggestion appears below/above input
+- Press **Tab** to apply translation
+- Press **Esc** to dismiss
+- Press **Delete/Backspace** to dismiss and edit
+
+### Keyboard Shortcuts
+
+- **Tab**: Apply suggested translation
+- **Esc**: Dismiss suggestion
+- **Delete/Backspace**: Dismiss and continue editing
+
+## Configuration
+
+Open the extension popup to customize:
+
+- **Enable/Disable Extension**: Toggle the extension on/off
+- **Native Language**: Your primary language
+- **Default Target Language**: Language to translate to when using `!!t`
+- **Revert Timeout**: How long to show the confirmation dialog
+- **Prefer Native as Source**: Use native language as default source
+- **Show Confirm Modal**: Display confirmation before applying translation
+- **Custom Aliases**: Create shortcuts (e.g., `e` → `en`, `v` → `vi`)
+
+### Instant Translate Settings
+
+- **Enable Instant Translate**: Turn on auto-translation for specific domains
+- **Delay**: Time to wait before translating (1-10 seconds)
+- **Active Domains**: Manage domains with enable/disable toggles
+- **Position**: Choose popup position (top/bottom) per domain
+- **Add Custom Domain**: Add your own domains to the list
+
+**Default Domains:**
+- telegram.org (top)
+- discord.com (top)
+- zalo.me (top)
+- openai.com (top)
+- claude.ai (top)
+- gemini.google.com (top)
 
 ## License
 

@@ -23,16 +23,28 @@ async function readSettings() {
   return (
     translatorSettings || {
       enabled: true,
-      nativeLanguageCode: "en",
-      targetLanguageCode: "es",
+      nativeLanguageCode: "vi",
+      targetLanguageCode: "en",
       preferNativeAsSource: true,
       showConfirmModal: true,
       dialogTimeout: 10,
       aliases: {
         e: "en",
+        v: "vi",
         ch: "zh",
         j: "ja"
-      }
+      },
+      // Instant translate settings
+      instantTranslateEnabled: false,
+      instantDelay: 3000,
+      instantDomains: [
+        { domain: "telegram.org", enabled: true, position: "top" },
+        { domain: "discord.com", enabled: true, position: "top" },
+        { domain: "zalo.me", enabled: true, position: "top" },
+        { domain: "openai.com", enabled: true, position: "top" },
+        { domain: "claude.ai", enabled: true, position: "top" },
+        { domain: "gemini.google.com", enabled: true, position: "top" }
+      ]
     }
   );
 }

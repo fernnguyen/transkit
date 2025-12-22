@@ -8,15 +8,17 @@ BangBang Translate is built using the **Chrome Extension Manifest V3** architect
 
 1.  **Content Script** (`src/content-script.js`):
     - Runs in the context of web pages.
-    - Monitors user input in `<input>` and `<textarea>` elements.
-    - Detects the translation command suffix (`--t: <lang>`).
+    - Listens for user input in editable fields.
+    - Detects the translation command suffix (`!!<lang>`).
+    - Implements instant translate mode for configured domains.
     - Injects the confirmation UI (Shadow DOM) into the page.
+    - Shows inline translation suggestions with keyboard shortcuts.
     - Communicates with the Background Service Worker to request translations.
 
 2.  **Background Service Worker** (`src/background.js`):
     - Acts as the central hub for messaging.
     - Manages the **Offscreen Document** lifecycle.
-    - Handles storage operations (Settings, History).
+    - Handles storage operations (Settings).
     - Routes translation requests from the Content Script to the Offscreen Document.
 
 3.  **Offscreen Document** (`src/offscreen.js` & `pages/offscreen.html`):
@@ -33,17 +35,30 @@ The extension leverages Chrome's experimental built-in AI APIs:
 
 ### Translation Flow
 
-1.  **User Input**: User types `Hello --t: es` in an input field.
+#### Manual Mode
+
+1.  **User Input**: User types `Hello !!es` in an input field.
 2.  **Detection**: `content-script.js` detects the pattern and sends a message to `background.js`.
 3.  **Routing**: `background.js` ensures the Offscreen document is open and forwards the message.
 4.  **Processing**: `offscreen.js`:
-    - Normalizes the target language code (e.g., "spanish" -> "es").
-    - Detects the source language (if not specified).
-    - Checks availability of the language pair.
-    - Creates a `Translator` instance and runs the translation.
-5.  **Response**: The result is sent back through `background.js` to `content-script.js`.
-6.  **UI Update**: `content-script.js` updates the confirmation dialog with the result.
-7.  **Replacement**: On confirmation, the input field value is replaced.
+    - Creates a translation session.
+    - Sends the text to Chrome's AI Translation API.
+    - Returns the translated result.
+5.  **Display**: `content-script.js` shows a confirmation dialog with the translation.
+6.  **User Action**: User can confirm (replace text) or revert (undo).
+
+#### Instant Translate Mode
+
+1.  **Domain Check**: User visits enabled domain (e.g., telegram.org).
+2.  **Input Detection**: User types normally in input field.
+3.  **Timer Start**: After user stops typing, timer starts (default: 3 seconds).
+4.  **Translation**: Timer expires → request translation via `background.js`.
+5.  **Inline Suggestion**: Show translated text below/above input with keyboard hints.
+6.  **User Action**:
+    - **Tab**: Apply translation (replace input text)
+    - **Esc**: Dismiss suggestion
+    - **Delete/Backspace**: Dismiss and continue editing
+    - **Continue typing**: Dismiss and restart timer
 
 ## File Structure
 
@@ -52,24 +67,29 @@ bangbang-translate/
 ├── manifest.json           # Extension configuration
 ├── package.json            # Dependencies and scripts
 ├── src/
-│   ├── background.js       # Service Worker
-│   ├── content-script.js   # Page interaction logic
-│   ├── offscreen.js        # AI processing logic
+│   ├── background.js       # Service worker (message routing, settings)
+│   ├── content-script.js   # Main content script (detection, UI, instant mode)
+│   ├── offscreen.js        # Offscreen document (AI translation)
 │   ├── popup.js            # Popup UI logic
 │   └── common/
-│       └── language-map.js # Language code utilities
+│       └── language-map.js # Language code normalization
 ├── pages/
-│   ├── offscreen.html      # Host for offscreen.js
-│   └── popup.html          # Popup UI HTML
+│   ├── popup.html          # Extension popup
+│   └── offscreen.html      # Offscreen document
 └── assets/
-    ├── icons/              # Extension icons
-    └── styles/             # CSS files
+    ├── styles/
+    │   ├── tokens.css      # Design tokens
+    │   ├── common.css      # Shared styles
+    │   ├── dialogs.css     # Dialog/toast styles
+    │   ├── popup.css       # Popup styles
+    │   └── inline-suggestion.css  # Instant translate suggestion styles
+    └── icons/              # Extension icons
 ```
 
 ## Key APIs Used
 
 -   `chrome.runtime`: Messaging and lifecycle management.
--   `chrome.storage`: Persisting user settings and history.
+-   `chrome.storage`: Persisting user settings.
 -   `chrome.offscreen`: Creating the hidden document for AI execution.
 -   `window.ai`: Accessing on-device AI models.
 

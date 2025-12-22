@@ -5,6 +5,12 @@ const TRANSLATION_COMMAND_PATTERN = /!!([a-zA-ZÀ-ÿ\-]+)$/i;
 let isTranslating = false;
 let debounceTimer = null;
 
+// Instant translate state
+let instantTimer = null;
+let currentSuggestion = null;
+let justAppliedTranslation = false;
+let currentKeyHandler = null; // Track active keyboard handler
+
 const commonStyles = {
   fontFamily: "system-ui, sans-serif",
   background: "#FFFF",
@@ -19,6 +25,7 @@ const commonStyles = {
   normalizeLanguageToCode = mod.normalizeLanguageToCode;
   injectGlobalStylesheet();
   registerAutoDetection();
+  registerInstantMode();
 })();
 
 function injectGlobalStylesheet() {
@@ -223,8 +230,8 @@ async function getSettings() {
     showToast("Extension updated. Please refresh the page.");
     return {
       enabled: false,
-      nativeLanguageCode: "en",
-      targetLanguageCode: "es",
+      nativeLanguageCode: "vi",
+      targetLanguageCode: "en",
       preferNativeAsSource: true,
       showConfirmModal: true,
       dialogTimeout: 10,
@@ -236,8 +243,8 @@ async function getSettings() {
   if (res?.ok) return res.settings;
   return {
     enabled: true,
-    nativeLanguageCode: "en",
-    targetLanguageCode: "es",
+    nativeLanguageCode: "vi",
+    targetLanguageCode: "en",
     preferNativeAsSource: true,
     showConfirmModal: true,
     dialogTimeout: 10,
@@ -304,7 +311,7 @@ function attemptTranslationTrigger(element) {
 }
 
 function resolveTargetLanguage(raw, settings) {
-  if (raw === "t") return settings.targetLanguageCode || "es";
+  if (raw === "t") return settings.targetLanguageCode || "en";
   
   // Check aliases
   if (settings.aliases && settings.aliases[raw]) {
@@ -473,4 +480,213 @@ async function handleAutoTranslation(element, parsed) {
   } finally {
     isTranslating = false;
   }
+}
+
+// ============================================
+// INSTANT TRANSLATE MODE
+// ============================================
+
+function isInstantDomain(settings) {
+  if (!settings.instantTranslateEnabled) return null;
+  
+  const hostname = window.location.hostname;
+  return settings.instantDomains.find(
+    d => d.enabled && hostname.includes(d.domain)
+  ) || null;
+}
+
+function shouldTriggerInstant(text) {
+  // Don't trigger if:
+  if (!text || text.trim().length < 5) return false; // Too short
+  if (/^https?:\/\//.test(text)) return false; // URL
+  if (/^[!@#$%^&*()_+=\[\]{};':"\\|,.<>/?`~-]+$/.test(text)) return false; // Only special chars
+  return true;
+}
+
+function setFieldText(element, text) {
+  const tag = element.tagName?.toLowerCase();
+  
+  if (tag === "input" || tag === "textarea") {
+    element.value = text;
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+  } else if (element.isContentEditable) {
+    element.textContent = text;
+  }
+}
+
+function buildInlineSuggestion(element, translatedText, position = 'bottom') {
+  const container = document.createElement('div');
+  container.className = 'bt-inline-suggestion';
+  
+  // Position relative to input
+  const rect = element.getBoundingClientRect();
+  container.style.position = 'fixed';
+  container.style.zIndex = '9999999999';
+  
+  // Set position based on preference
+  if (position === 'top') {
+    container.style.bottom = `${window.innerHeight - rect.top + 4}px`;
+  } else {
+    container.style.top = `${rect.bottom + 4}px`;
+  }
+  
+  container.style.left = `${rect.left}px`;
+  container.style.width = `${rect.width - 80}px`;
+  
+  container.innerHTML = `
+    <div class="bt-suggestion-content">
+      <span class="bt-suggestion-icon">🌐</span>
+      <span class="bt-suggestion-text">${translatedText}</span>
+    </div>
+    <span class="bt-suggestion-hint"><kbd>Tab</kbd> to apply • <kbd>Esc</kbd> to dismiss</span>
+  `;
+  
+  document.body.appendChild(container);
+  
+  return {
+    element: container,
+    translatedText,
+    destroy: () => {
+      container.remove();
+    }
+  };
+}
+
+function setupSuggestionKeyHandlers(element, suggestion) {
+  // CRITICAL: Remove any existing handler first
+  if (currentKeyHandler) {
+    document.removeEventListener("keydown", currentKeyHandler, true);
+    currentKeyHandler = null;
+  }
+  
+  const handleKey = (ev) => {
+    // Only handle specific keys, let everything else pass through
+    if (ev.key === "Tab") {
+      ev.preventDefault();
+      ev.stopPropagation();
+      ev.stopImmediatePropagation();
+      
+      // IMPORTANT: Cleanup FIRST before applying translation
+      document.removeEventListener("keydown", handleKey, true);
+      currentKeyHandler = null;
+      
+      // Set flag to prevent instant translate from re-triggering
+      justAppliedTranslation = true;
+      
+      // Then apply translation
+      setFieldText(element, suggestion.translatedText);
+      suggestion.destroy();
+      currentSuggestion = null;
+      
+      // Clear flag after a short delay
+      setTimeout(() => {
+        justAppliedTranslation = false;
+      }, 500);
+      
+      return;
+    }
+    
+    if (ev.key === "Escape") {
+      ev.preventDefault();
+      ev.stopPropagation();
+      ev.stopImmediatePropagation();
+      
+      // Cleanup
+      document.removeEventListener("keydown", handleKey, true);
+      currentKeyHandler = null;
+      
+      // Dismiss
+      suggestion.destroy();
+      currentSuggestion = null;
+      
+      return;
+    }
+    
+    if (ev.key === "Backspace" || ev.key === "Delete") {
+      // Cleanup FIRST
+      document.removeEventListener("keydown", handleKey, true);
+      currentKeyHandler = null;
+      
+      // Dismiss suggestion and allow delete to work
+      suggestion.destroy();
+      currentSuggestion = null;
+      
+      // Don't prevent default - let the delete happen
+      return;
+    }
+    
+    // All other keys: do nothing, let them pass through completely
+  };
+  
+  // Store reference and add listener
+  currentKeyHandler = handleKey;
+  document.addEventListener("keydown", handleKey, true);
+}
+
+async function handleInstantTranslate(element) {
+  // Skip if we just applied a translation
+  if (justAppliedTranslation) return;
+  
+  const text = element.value?.trim() || element.innerText?.trim();
+  if (!shouldTriggerInstant(text)) return;
+  
+  let settings;
+  try {
+    settings = await getSettings();
+  } catch (e) {
+    return; // Silently fail if settings unavailable
+  }
+  
+  const domainConfig = isInstantDomain(settings);
+  if (!domainConfig) return;
+  
+  // Clear existing timer
+  if (instantTimer) {
+    clearTimeout(instantTimer);
+    instantTimer = null;
+  }
+  
+  // Dismiss existing suggestion
+  if (currentSuggestion) {
+    currentSuggestion.destroy();
+    currentSuggestion = null;
+  }
+  
+  // Start new timer
+  instantTimer = setTimeout(async () => {
+    try {
+      showToast("Translating...");
+      
+      const res = await requestTranslation({
+        text: text,
+        nativeLanguageCode: settings.nativeLanguageCode || "en",
+        targetLanguage: settings.targetLanguageCode || "es",
+        preferNativeAsSource: settings.preferNativeAsSource !== false
+      });
+      
+      if (res?.ok && res.result?.translation) {
+        const position = domainConfig.position || 'bottom';
+        currentSuggestion = buildInlineSuggestion(element, res.result.translation, position);
+        setupSuggestionKeyHandlers(element, currentSuggestion);
+      }
+    } catch (err) {
+      console.error("Instant translate error:", err);
+    }
+  }, settings.instantDelay || 3000);
+}
+
+function registerInstantMode() {
+  document.addEventListener('input', async (e) => {
+    const element = getActiveEditableElement();
+    if (!element) return;
+    
+    // Don't interfere with manual mode
+    if (isTranslating) return;
+    
+    // Check if manual command is being typed
+    const text = element.value?.trim() || element.innerText?.trim();
+    if (TRANSLATION_COMMAND_PATTERN.test(text)) return;
+    
+    handleInstantTranslate(element);
+  }, true);
 }

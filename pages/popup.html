@@ -64,6 +64,29 @@
           <div id="alias-list" class="bt-alias-list"></div>
         </div>
 
+        <div class="bt-divider"></div>
+
+        <div class="bt-field-row">
+          <input type="checkbox" id="instant-translate-enabled" />
+          <label for="instant-translate-enabled">Enable Instant Translate for specific domains</label>
+        </div>
+
+        <div id="instant-settings" class="bt-instant-settings" hidden>
+          <div class="bt-field">
+            <label for="instant-delay">Delay (seconds)</label>
+            <input type="number" id="instant-delay" class="bt-input" min="1" max="10" value="3" />
+          </div>
+          
+          <div class="bt-field">
+            <label>Active Domains</label>
+            <div id="instant-domain-list" class="bt-domain-list"></div>
+            <div class="bt-domain-input-group">
+              <input type="text" id="new-domain" placeholder="example.com" />
+              <button id="add-domain" class="bt-button-small">+</button>
+            </div>
+          </div>
+        </div>
+
         <div class="bt-actions">
           <button id="save" class="bt-button">Save preferences</button>
         </div>
