@@ -93,4 +93,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     return true;
   }
+
+  if (message?.type === "open-options") {
+    chrome.runtime.openOptionsPage();
+    return true;
+  }
 });

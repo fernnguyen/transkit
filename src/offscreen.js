@@ -118,12 +118,18 @@ async function runTranslation(
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "offscreen-translate") {
-    const { text, nativeLanguageCode, targetLanguage, preferNativeAsSource } =
+    const { text, nativeLanguageCode, targetLanguage, preferNativeAsSource, sourceLanguage } =
       message.payload || {};
+
+    // If explicit sourceLanguage is provided (and not 'auto'), use it as requestedSource
+    // Otherwise use nativeLanguageCode (legacy behavior)
+    const requestedSource = (sourceLanguage && sourceLanguage !== 'auto') 
+      ? sourceLanguage 
+      : nativeLanguageCode;
 
     runTranslation(
       text,
-      nativeLanguageCode,
+      requestedSource,
       targetLanguage,
       preferNativeAsSource
     )

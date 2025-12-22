@@ -11,6 +11,11 @@ let currentSuggestion = null;
 let justAppliedTranslation = false;
 let currentKeyHandler = null; // Track active keyboard handler
 
+// Select-to-translate state
+let selectionIcon = null;
+let selectionPopup = null;
+let selectedText = "";
+
 const commonStyles = {
   fontFamily: "system-ui, sans-serif",
   background: "#FFFF",
@@ -26,6 +31,7 @@ const commonStyles = {
   injectGlobalStylesheet();
   registerAutoDetection();
   registerInstantMode();
+  registerSelectionMode();
 })();
 
 function injectGlobalStylesheet() {
@@ -713,4 +719,302 @@ function registerInstantMode() {
       }
     }
   }, true);
+}
+
+// ============================================
+// SELECT-TO-TRANSLATE MODE
+// ============================================
+
+function showTranslateIcon(x, y, selection) {
+  hideTranslateIcon();
+  
+  const range = selection.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  
+  const icon = document.createElement('div');
+  icon.className = 'bt-translate-icon';
+  
+  // Use extension icon instead of SVG
+  const iconUrl = chrome.runtime.getURL('assets/icons/icon-19.png');
+  icon.innerHTML = `<img src="${iconUrl}" width="19" height="19" alt="Translate" />`;
+  
+  icon.style.position = 'fixed';
+  icon.style.zIndex = '9999999999';
+  
+  // Position near cursor - choose top or bottom based on viewport
+  const viewportHeight = window.innerHeight;
+  const spaceBelow = viewportHeight - y;
+  const spaceAbove = y;
+  
+  // If more space below, show below cursor; otherwise show above
+  if (spaceBelow > 200 || spaceBelow > spaceAbove) {
+    icon.style.left = `${x - 20}px`;
+    icon.style.top = `${y + 10}px`;
+    icon.dataset.position = 'bottom';
+  } else {
+    icon.style.left = `${x - 20}px`;
+    icon.style.top = `${y - 48}px`;
+    icon.dataset.position = 'top';
+  }
+  
+  icon.addEventListener('click', (e) => {
+    e.stopPropagation();
+    // Pass selection rect instead of icon rect for better positioning
+    showTranslationPopup(rect, selectedText, icon.dataset.position);
+  });
+  
+  document.body.appendChild(icon);
+  selectionIcon = icon;
+}
+
+function hideTranslateIcon() {
+  if (selectionIcon) {
+    selectionIcon.remove();
+    selectionIcon = null;
+  }
+}
+
+function showTranslationPopup(selectionRect, text, iconPosition) {
+  hideTranslationPopup();
+  
+  const popup = document.createElement('div');
+  popup.className = 'bt-selection-popup';
+  
+  popup.innerHTML = `
+    <div class="bt-selection-header">
+      <span class="bt-selection-title">Translation</span>
+      <button class="bt-selection-close">×</button>
+    </div>
+    <div class="bt-selection-content">
+      <div class="bt-selection-original">
+        <label>
+          Original
+          <select class="bt-selection-source-select"></select>
+        </label>
+        <div class="bt-selection-text">${text}</div>
+      </div>
+      <div class="bt-selection-translated">
+        <label>Translated to <span class="bt-native-lang">Native</span></label>
+        <div class="bt-selection-text bt-loading-text">Translating...</div>
+      </div>
+    </div>
+    <div class="bt-selection-footer">
+      <span class="bt-selection-version">BangBang Translation v1.0.0</span>
+      <a href="#" class="bt-selection-settings">⚙️ Settings</a>
+    </div>
+  `;
+  
+  popup.style.position = 'fixed';
+  popup.style.zIndex = '9999999999';
+  
+  // Center popup based on SELECTION rect
+  const popupWidth = 350;
+  const selectionCenter = selectionRect.left + (selectionRect.width / 2);
+  const left = selectionCenter - (popupWidth / 2);
+  
+  // Ensure popup doesn't go off-screen
+  const maxLeft = window.innerWidth - popupWidth - 10;
+  const minLeft = 10;
+  const finalLeft = Math.max(minLeft, Math.min(left, maxLeft));
+  
+  // Calculate arrow position relative to popup
+  // Arrow should point to selection center
+  const arrowLeft = selectionCenter - finalLeft;
+  popup.style.setProperty('--bt-arrow-left', `${arrowLeft}px`);
+  
+  // Vertical positioning: close to selection
+  // Use selectionRect.bottom/top directly
+  if (iconPosition === 'bottom') {
+    popup.style.left = `${finalLeft}px`;
+    popup.style.top = `${selectionRect.bottom + 8}px`; // 8px gap from text
+    popup.classList.add('bt-popup-bottom');
+  } else {
+    popup.style.left = `${finalLeft}px`;
+    popup.style.bottom = `${window.innerHeight - selectionRect.top + 8}px`; // 8px gap from text
+    popup.classList.add('bt-popup-top');
+  }
+  
+  document.body.appendChild(popup);
+  selectionPopup = popup;
+  
+  // Hide icon when popup opens
+  hideTranslateIcon();
+  
+  // Update native language label and set default source
+  getSettings().then(settings => {
+    const nativeLang = settings.nativeLanguageCode || 'vi';
+    const targetLang = settings.targetLanguageCode || 'en'; // Default source is target language
+    
+    const langName = getLanguageName(nativeLang);
+    popup.querySelector('.bt-native-lang').textContent = langName;
+    
+    // Populate source selector with targetLang as default
+    populateSourceLanguageSelector(popup, targetLang);
+    
+    // Initial translation
+    translateSelectionWithSource(text, targetLang, popup);
+  });
+  
+  popup.querySelector('.bt-selection-close').addEventListener('click', () => {
+    hideTranslationPopup();
+    hideTranslateIcon();
+  });
+  
+  popup.querySelector('.bt-selection-source-select').addEventListener('change', (e) => {
+    translateSelectionWithSource(text, e.target.value, popup);
+  });
+  
+  // Settings link
+  popup.querySelector('.bt-selection-settings').addEventListener('click', (e) => {
+    e.preventDefault();
+    chrome.runtime.sendMessage({ type: 'open-options' });
+  });
+}
+
+function hideTranslationPopup() {
+  if (selectionPopup) {
+    selectionPopup.remove();
+    selectionPopup = null;
+  }
+}
+
+async function translateSelectionWithSource(text, sourceLang, popup) {
+  const settings = await getSettings();
+  const nativeLang = settings.nativeLanguageCode || 'vi';
+  
+  const translatedDiv = popup.querySelector('.bt-selection-text.bt-loading-text');
+  translatedDiv.textContent = 'Translating...';
+  translatedDiv.classList.add('bt-loading-text');
+  
+  try {
+    const res = await requestTranslation({
+      text: text,
+      nativeLanguageCode: nativeLang,
+      targetLanguage: nativeLang,
+      sourceLanguage: sourceLang, // Pass explicit source language
+      preferNativeAsSource: sourceLang === 'auto'
+    });
+    
+    if (res?.ok && res.result?.translation) {
+      translatedDiv.textContent = res.result.translation;
+      translatedDiv.classList.remove('bt-loading-text');
+    } else {
+      translatedDiv.textContent = 'Translation failed';
+    }
+  } catch (err) {
+    translatedDiv.textContent = 'Error: ' + err.message;
+  }
+}
+
+function populateLanguageSelector(popup) {
+  const select = popup.querySelector('.bt-selection-lang-select');
+  const languages = [
+    { code: 'vi', name: 'Vietnamese' },
+    { code: 'en', name: 'English' },
+    { code: 'zh', name: 'Chinese' },
+    { code: 'ja', name: 'Japanese' },
+    { code: 'ko', name: 'Korean' },
+    { code: 'es', name: 'Spanish' },
+    { code: 'fr', name: 'French' },
+    { code: 'de', name: 'German' }
+  ];
+  
+  languages.forEach(lang => {
+    const option = document.createElement('option');
+    option.value = lang.code;
+    option.textContent = lang.name;
+    select.appendChild(option);
+  });
+  
+  getSettings().then(settings => {
+    select.value = settings.nativeLanguageCode || 'vi';
+  });
+}
+
+function registerSelectionMode() {
+  document.addEventListener('mouseup', (e) => {
+    // Ignore if clicking on icon or popup
+    if (e.target.closest('.bt-translate-icon') || e.target.closest('.bt-selection-popup')) {
+      return;
+    }
+
+    setTimeout(() => {
+      const selection = window.getSelection();
+      const text = selection.toString().trim();
+      
+      if (text && text.length > 0) {
+        // If popup is already open for this text, don't show icon
+        if (selectionPopup && selectedText === text) {
+          return;
+        }
+        
+        selectedText = text;
+        showTranslateIcon(e.clientX, e.clientY, selection);
+      } else {
+        hideTranslateIcon();
+        // Don't hide popup here, let mousedown handle it (so we can copy text from popup)
+      }
+    }, 10);
+  });
+  
+  document.addEventListener('mousedown', (e) => {
+    // 1. Handle Popup Open State
+    if (selectionPopup) {
+      if (!selectionPopup.contains(e.target)) {
+        // Clicked outside popup
+        // Prevent default to PRESERVE selection
+        e.preventDefault();
+        e.stopPropagation();
+        hideTranslationPopup();
+      }
+      return;
+    }
+
+    // 2. Handle Icon Open State (Popup is closed)
+    if (selectionIcon) {
+      if (!selectionIcon.contains(e.target)) {
+        // Clicked outside icon
+        // Let default behavior happen (selection clears)
+        hideTranslateIcon();
+      }
+    }
+  });
+}
+
+function populateSourceLanguageSelector(popup, defaultValue = 'auto') {
+  const select = popup.querySelector('.bt-selection-source-select');
+  const languages = [
+    { code: 'auto', name: 'Auto-detect' },
+    { code: 'en', name: 'English' },
+    { code: 'vi', name: 'Vietnamese' },
+    { code: 'zh', name: 'Chinese' },
+    { code: 'ja', name: 'Japanese' },
+    { code: 'ko', name: 'Korean' },
+    { code: 'es', name: 'Spanish' },
+    { code: 'fr', name: 'French' },
+    { code: 'de', name: 'German' }
+  ];
+  
+  languages.forEach(lang => {
+    const option = document.createElement('option');
+    option.value = lang.code;
+    option.textContent = lang.name;
+    select.appendChild(option);
+  });
+  
+  select.value = defaultValue;
+}
+
+function getLanguageName(code) {
+  const names = {
+    'en': 'English',
+    'vi': 'Vietnamese',
+    'zh': 'Chinese',
+    'ja': 'Japanese',
+    'ko': 'Korean',
+    'es': 'Spanish',
+    'fr': 'French',
+    'de': 'German'
+  };
+  return names[code] || code.toUpperCase();
 }

@@ -21,6 +21,10 @@
       "128": "assets/icons/icon-128.png"
     }
   },
+  "options_ui": {
+    "page": "pages/popup.html",
+    "open_in_tab": true
+  },
   "background": {
     "service_worker": "src/background.js",
     "type": "module"
@@ -29,7 +33,7 @@
     {
       "matches": ["<all_urls>"],
       "js": ["src/content-script.js"],
-      "css": ["assets/styles/inline-suggestion.css"],
+      "css": ["assets/styles/inline-suggestion.css", "assets/styles/selection.css"],
       "run_at": "document_idle",
       "all_frames": true
     }
