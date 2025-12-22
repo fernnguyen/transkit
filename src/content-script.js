@@ -749,7 +749,7 @@ function showTranslateIcon(x, y, selection) {
   // If more space below, show below cursor; otherwise show above
   if (spaceBelow > 200 || spaceBelow > spaceAbove) {
     icon.style.left = `${x - 20}px`;
-    icon.style.top = `${y + 10}px`;
+    icon.style.top = `${y + 12}px`;
     icon.dataset.position = 'bottom';
   } else {
     icon.style.left = `${x - 20}px`;
@@ -931,10 +931,17 @@ function populateLanguageSelector(popup) {
   });
 }
 
+let lastPopupCloseTime = 0;
+
 function registerSelectionMode() {
   document.addEventListener('mouseup', (e) => {
     // Ignore if clicking on icon or popup
     if (e.target.closest('.bt-translate-icon') || e.target.closest('.bt-selection-popup')) {
+      return;
+    }
+
+    // Ignore if we just closed the popup (within 200ms)
+    if (Date.now() - lastPopupCloseTime < 200) {
       return;
     }
 
@@ -966,6 +973,7 @@ function registerSelectionMode() {
         e.preventDefault();
         e.stopPropagation();
         hideTranslationPopup();
+        lastPopupCloseTime = Date.now();
       }
       return;
     }
