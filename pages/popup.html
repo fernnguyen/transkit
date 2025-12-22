@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>BangBang Translate</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Chrome extension for instant AI-powered translation on input fields."
+    />
+    <link rel="stylesheet" href="../assets/styles/popup.css" />
+  </head>
+
+  <body>
+    <div class="bt-wrap">
+      <div class="bt-header">
+        <div class="bt-title-row">
+          <h1>BangBang Translate</h1>
+          <label class="bt-switch">
+            <input type="checkbox" id="enabled" />
+            <span class="slider round"></span>
+          </label>
+        </div>
+        <p>Instant AI-powered translation.</p>
+      </div>
+
+      <div id="settings-container" class="bt-settings-container">
+        <div class="bt-row">
+          <div class="bt-field">
+            <label for="native">Native Language</label>
+            <select id="native" class="bt-input"></select>
+          </div>
+
+          <div class="bt-field">
+            <label for="target">Default Target</label>
+            <select id="target" class="bt-input"></select>
+          </div>
+        </div>
+
+        <div class="bt-field">
+          <label for="timeout">Revert Timeout (seconds)</label>
+          <input type="number" id="timeout" class="bt-input" min="1" max="60" />
+        </div>
+
+        <div class="bt-field-row">
+          <input type="checkbox" id="prefer-native" />
+          <label for="prefer-native">Prefer Native as Source</label>
+        </div>
+
+        <div class="bt-field-row">
+          <input type="checkbox" id="confirm-modal" />
+          <label for="confirm-modal">Show Confirm Modal</label>
+        </div>
+
+        <div class="bt-divider"></div>
+
+        <div class="bt-field">
+          <label>Aliases</label>
+          <div class="bt-alias-input-group">
+            <input type="text" id="alias-key" placeholder="Key (e.g. e)" />
+            <input type="text" id="alias-value" placeholder="Code (e.g. en)" />
+            <button id="add-alias" class="bt-button-small">+</button>
+          </div>
+          <div id="alias-list" class="bt-alias-list"></div>
+        </div>
+
+        <div class="bt-actions">
+          <button id="save" class="bt-button">Save preferences</button>
+        </div>
+
+        <p class="bt-hint">
+          Type your text then add: <code>!![code]</code> or <code>!!t</code>.
+          <br />
+          <b>Example:</b> <code>Hello world !!es</code> or <code>!!t</code>
+        </p>
+
+        <p>
+          <em>
+            Requires Chrome desktop with AI APIs enabled; the model will download
+            on first use if needed.
+          </em>
+        </p>
+      </div>
+    </div>
+
+    <script type="module" src="../src/popup.js"></script>
+  </body>
+</html>

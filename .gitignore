@@ -1,0 +1,19 @@
+# Directories
+node_modules/
+build/
+dist/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log*
+
+# Temporary files
+*.swp
+*.bak
+*.tmp
+
+# Environment files
+package-lock.json

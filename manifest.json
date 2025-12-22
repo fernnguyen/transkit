@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "BangBang Translate",
+  "version": "1.0.0",
+  "description": "Chrome extension for instant AI-powered translation on input fields.",
+  "author": "@FernNguyen",
+  "homepage_url": "https://github.com/FernNguyen/bangbang-translate",
+  "icons": {
+    "16": "assets/icons/16.png",
+    "32": "assets/icons/32.png",
+    "48": "assets/icons/48.png",
+    "128": "assets/icons/128.png"
+  },
+  "action": {
+    "default_popup": "pages/popup.html",
+    "default_title": "BangBang Translate",
+    "default_icon": {
+      "16": "assets/icons/16.png",
+      "32": "assets/icons/32.png",
+      "48": "assets/icons/48.png",
+      "128": "assets/icons/128.png"
+    }
+  },
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content-script.js"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ],
+  "permissions": ["storage", "offscreen"],
+  "host_permissions": ["<all_urls>"],
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/icons/*", "assets/styles/*", "pages/*", "src/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

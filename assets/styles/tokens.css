@@ -1,0 +1,63 @@
+:root {
+  --bt-font-size-code: 0.6875rem;
+  --bt-font-size-small: 0.75rem;
+  --bt-font-size-medium: 0.8125rem;
+  --bt-font-size-large: 1.125rem;
+
+  --bt-space-small: 0.375rem;
+  --bt-space-medium: 0.75rem;
+  --bt-space-large: 1.125rem;
+
+  --bt-radius-small: 0.375rem;
+
+  --bt-border-width: 0.0625rem;
+
+  --bt-line-height: 1.8;
+
+  --bt-target-min-height: 2.25rem;
+
+  --bt-color-white: #ffffff;
+  --bt-color-black: #000000;
+
+  --bt-color-background-default: #fcfcfd;
+  --bt-color-background-hover: #f9f9fb;
+  --bt-color-background-interactive: #f0f0f3;
+
+  --bt-color-border-default: #d9d9e0;
+  --bt-color-border-hover: #cdced6;
+  --bt-color-border-interactive: #b8bcba;
+
+  --bt-color-text-default: #1c2024;
+  --bt-color-text-muted: #8b8d98;
+
+  --bt-color-primary-background: #e6f4fe;
+  --bt-color-primary-background-hover: #d5efff;
+  --bt-color-primary-background-interactive: #c2e5ff;
+  --bt-color-primary-border: #acd8fc;
+  --bt-color-primary-border-hover: #8ec8f6;
+  --bt-color-primary-border-interactive: #5eb1ef;
+  --bt-color-primary-text: #113264;
+
+  --bt-color-danger-background: #feebec;
+  --bt-color-danger-background-hover: #ffdbdc;
+  --bt-color-danger-background-interactive: #ffcdce;
+  --bt-color-danger-border: #fdbdbe;
+  --bt-color-danger-border-hover: #f4a9aa;
+  --bt-color-danger-border-interactive: #eb8e90;
+  --bt-color-danger-text: #641723;
+
+  --bt-ease: cubic-bezier(0.19, 1, 0.22, 1);
+  --bt-transition-duration: 180ms;
+
+  --bt-shadow-default:
+    0 0.0625rem 0.1875rem #0000001a, 0 0.0625rem 0.125rem #0000000f;
+  --bt-shadow-hover: 0 0.25rem 0.375rem #0000001a, 0 0.125rem 0.25rem #0000000f;
+  --bt-shadow-interactive:
+    0 0.625rem 0.9375rem #0000001a, 0 0.25rem 0.375rem #0000000f;
+}
+
+@keyframes bt-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

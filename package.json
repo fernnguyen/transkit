@@ -1,0 +1,28 @@
+{
+  "name": "bridge-translate",
+  "version": "1.0.0",
+  "description": "🌁 Chrome extension for instant AI-powered translation on input.",
+  "author": {
+    "name": "Lucas de França",
+    "email": "me@luxonauta.com"
+  },
+  "license": "MIT",
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/luxonauta/bridge-translate.git"
+  },
+  "scripts": {
+    "lint": "eslint . --fix && prettier . --write"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.3",
+    "@eslint/js": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "eslint": "^9.39.1",
+    "globals": "^16.5.0",
+    "prettier-plugin-css-order": "^2.1.2",
+    "prettier": "^3.7.4"
+  }
+}
