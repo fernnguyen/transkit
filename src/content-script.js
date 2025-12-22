@@ -735,8 +735,8 @@ function showTranslateIcon(x, y, selection) {
   icon.className = 'bt-translate-icon';
   
   // Use extension icon instead of SVG
-  const iconUrl = chrome.runtime.getURL('assets/icons/icon-19.png');
-  icon.innerHTML = `<img src="${iconUrl}" width="19" height="19" alt="Translate" />`;
+  const iconUrl = chrome.runtime.getURL('assets/icons/icon-32.png');
+  icon.innerHTML = `<img src="${iconUrl}" width="24" height="24" alt="Translate" />`;
   
   icon.style.position = 'fixed';
   icon.style.zIndex = '9999999999';
@@ -776,13 +776,17 @@ function hideTranslateIcon() {
 
 function showTranslationPopup(selectionRect, text, iconPosition) {
   hideTranslationPopup();
+
   
   const popup = document.createElement('div');
+  const iconUrl = chrome.runtime.getURL('assets/icons/icon-16.png');
   popup.className = 'bt-selection-popup';
-  
   popup.innerHTML = `
     <div class="bt-selection-header">
-      <span class="bt-selection-title">Translation</span>
+      <span class="bt-selection-title">
+        <img src="${iconUrl}" width="16" height="16" alt="Translate"  style="float:left;margin-right:2px" /> 
+        <span>TransKit Translation</span>
+      </span>
       <button class="bt-selection-close">×</button>
     </div>
     <div class="bt-selection-content">
@@ -799,7 +803,7 @@ function showTranslationPopup(selectionRect, text, iconPosition) {
       </div>
     </div>
     <div class="bt-selection-footer">
-      <span class="bt-selection-version">BangBang Translation v1.0.0</span>
+      <span class="bt-selection-version">TransKit v1.0.0</span>
       <a href="#" class="bt-selection-settings">⚙️ Settings</a>
     </div>
   `;

@@ -30,13 +30,25 @@
   --bt-color-text-default: #1c2024;
   --bt-color-text-muted: #8b8d98;
 
-  --bt-color-primary-background: #e6f4fe;
-  --bt-color-primary-background-hover: #d5efff;
+  --bt-color-primary-background: #50b4c4;
+  --bt-color-primary-background-hover: #61cdde;
   --bt-color-primary-background-interactive: #c2e5ff;
-  --bt-color-primary-border: #acd8fc;
-  --bt-color-primary-border-hover: #8ec8f6;
-  --bt-color-primary-border-interactive: #5eb1ef;
-  --bt-color-primary-text: #113264;
+  --bt-color-primary-border: #50b4c4;
+  --bt-color-primary-border-hover: #61cdde;
+  --bt-color-primary-border-interactive: #61cdde;
+  --bt-color-primary-text: #ffffff;
+
+  --bt-color-mirror-background: #f3efff;
+  --bt-color-mirror-background-hover: #ebe4ff;
+  --bt-color-mirror-border: #d6ccff;
+
+  --bt-color-mirror-solid: #7c3aed;         /* purple */
+  --bt-color-mirror-solid-hover: #6d28d9;
+  --bt-color-mirror-solid-active: #5b21b6;
+
+  --bt-color-mirror-text: #3b0764;
+  --bt-color-mirror-text-inverse: #ffffff;
+
 
   --bt-color-danger-background: #feebec;
   --bt-color-danger-background-hover: #ffdbdc;

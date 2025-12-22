@@ -1,10 +1,10 @@
 # Developer Guide
 
-This guide provides an overview of the technical architecture of BangBang Translate to help developers understand how the extension works.
+This guide provides an overview of the technical architecture of TransKit to help developers understand how the extension works.
 
 ## Architecture Overview
 
-BangBang Translate is built using the **Chrome Extension Manifest V3** architecture. It consists of three main components:
+TransKit is built using the **Chrome Extension Manifest V3** architecture. It consists of three main components:
 
 1.  **Content Script** (`src/content-script.js`):
     - Runs in the context of web pages.
@@ -63,7 +63,7 @@ The extension leverages Chrome's experimental built-in AI APIs:
 ## File Structure
 
 ```
-bangbang-translate/
+transkit/
 ├── manifest.json           # Extension configuration
 ├── package.json            # Dependencies and scripts
 ├── src/

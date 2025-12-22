@@ -1,6 +1,6 @@
-# BangBang Translate
+# TransKit
 
-**BangBang Translate** is a Chrome extension that brings instant, AI-powered translation directly to your input fields. No more switching tabs or copy-pasting—just type, command, and translate.
+**TransKit** is a Chrome extension that brings instant, AI-powered translation directly to your input fields. No more switching tabs or copy-pasting—just type, command, and translate.
 
 ## Features
 
@@ -14,11 +14,11 @@
 
 ## Installation
 
-Currently, BangBang Translate is available for installation via "Load Unpacked" for developers and early adopters.
+Currently, TransKit is available for installation via "Load Unpacked" for developers and early adopters.
 
 1.  **Clone the repository**:
     ```bash
-    git clone http://github.com/fernnguyen/bangbang-translate.git
+    git clone http://github.com/fernnguyen/transkit.git
     ```
 2.  **Open Chrome Extensions**:
     - Navigate to `chrome://extensions/` in your browser.

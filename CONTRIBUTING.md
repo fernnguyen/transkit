@@ -1,14 +1,14 @@
-# Contributing to BangBang Translate
+# Contributing to TransKit
 
-Thank you for your interest in contributing to BangBang Translate! We welcome contributions from everyone.
+Thank you for your interest in contributing to TransKit! We welcome contributions from everyone.
 
 ## Getting Started
 
 1.  **Fork the repository** on GitHub.
 2.  **Clone your fork** locally:
     ```bash
-    git clone https://github.com/fernnguyen/bangbang-translate.git
-    cd bangbang-translate
+    git clone https://github.com/fernnguyen/transkit.git
+    cd transkit
     ```
 3.  **Install dependencies**:
     ```bash

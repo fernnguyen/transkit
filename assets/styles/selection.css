@@ -4,15 +4,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 19px;
-  height: 19px;
+  width: 24px;
+  height: 24px;
   background: var(--bt-color-white);
   border: var(--bt-border-width) solid var(--bt-color-border-default);
-  border-radius: 50%;
+  border-radius: 15%;
   box-shadow: var(--bt-shadow-default);
   cursor: pointer;
   transition: all 0.2s ease;
-  padding: 4px;
+  padding: 0px;
 }
 
 .bt-translate-icon img {
@@ -22,7 +22,7 @@
 }
 
 .bt-translate-icon:hover {
-  border-color: var(--bt-color-primary);
+  border-color: #0aa8b3;
   background-color: #f0f7ff; /* Light blue tint */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   transform: scale(1.1);

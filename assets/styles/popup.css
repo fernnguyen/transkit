@@ -380,3 +380,13 @@ input:checked + .slider:before {
   gap: var(--bt-space-small);
   margin-top: var(--bt-space-small);
 }
+.title {
+  display: flex;
+  align-items: center;   /* căn giữa theo chiều dọc */
+  gap: 4px;              /* khoảng cách giữa icon và text */
+}
+
+.title img {
+  width: 19px;
+  height: 19px;
+}
