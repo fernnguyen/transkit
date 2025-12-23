@@ -1,0 +1,132 @@
+export const locales = {
+  en: {
+    // Popup
+    "popup.title": "TransKit",
+    "popup.subtitle": "Instant AI-powered translation.",
+    "popup.nativeLanguage": "Native Language",
+    "popup.defaultTarget": "Default Target",
+    "popup.revertTimeout": "Revert Timeout (seconds)",
+    "popup.preferNative": "Prefer Native as Source",
+    "popup.showConfirmModal": "Show Confirm Modal",
+    "popup.aliases": "Aliases",
+    "popup.aliasKeyPlaceholder": "Key (e.g. e)",
+    "popup.aliasValuePlaceholder": "Code (e.g. en)",
+    "popup.enableInstant": "Enable Instant Translate for specific domains",
+    "popup.instantDelay": "Delay (seconds)",
+    "popup.activeDomains": "Active Domains",
+    "popup.domainPlaceholder": "example.com",
+    "popup.savePreferences": "Save preferences",
+    "popup.saved": "✅ Saved",
+    "popup.hint": "Type your text then add: <code>!![code]</code> or <code>!!t</code>.<br /><b>Example:</b> <code>Hello world !!es</code> or <code>!!t</code>",
+    "popup.aiWarning": "Requires Chrome desktop with AI APIs enabled; the model will download on first use if needed.",
+    
+    // Dialogs & Toasts
+    "dialog.confirmTitle": "Confirm Translation",
+    "dialog.revertTitle": "Translation Applied",
+    "dialog.translating": "Translating...",
+    "dialog.cancel": "Cancel",
+    "dialog.dismiss": "Dismiss",
+    "dialog.replace": "Replace",
+    "dialog.revert": "Revert",
+    "toast.translating": "Translating...",
+    "toast.translationFailed": "Translation failed",
+    "toast.invalidLanguage": "Invalid language or alias",
+    "toast.extensionUpdated": "Extension updated. Please refresh the page.",
+    
+    // Selection Popup
+    "selection.title": "TransKit Translation",
+    "selection.original": "Original",
+    "selection.translate": "Translate",
+    "selection.copy": "Copy",
+    "selection.copied": "Copied!",
+    "selection.settings": "⚙️ Settings",
+    
+    // Inline Suggestion
+    "suggestion.hint": "<kbd>Tab</kbd> to apply • <kbd>Esc</kbd> to dismiss",
+    
+    // Languages
+    "lang.auto": "Auto-detect",
+    "lang.en": "English",
+    "lang.vi": "Vietnamese",
+    "lang.zh": "Chinese",
+    "lang.ja": "Japanese",
+    "lang.ko": "Korean",
+    "lang.es": "Spanish",
+    "lang.fr": "French",
+    "lang.de": "German",
+    "lang.ru": "Russian",
+    "lang.pt": "Portuguese",
+    "lang.it": "Italian",
+    "lang.hi": "Hindi",
+    "lang.ar": "Arabic",
+    "lang.tr": "Turkish",
+    "lang.nl": "Dutch",
+    "lang.pl": "Polish",
+    "lang.th": "Thai"
+  },
+  vi: {
+    // Popup
+    "popup.title": "TransKit",
+    "popup.subtitle": "Dịch thuật tức thì bằng AI.",
+    "popup.nativeLanguage": "Ngôn ngữ của bạn",
+    "popup.defaultTarget": "Ngôn ngữ cần dịch",
+    "popup.revertTimeout": "Thời gian hoàn tác (giây)",
+    "popup.preferNative": "Ưu tiên dùng ngôn ngữ của bạn để dịch",
+    "popup.showConfirmModal": "Hiển thị hộp thoại xác nhận",
+    "popup.aliases": "Phím tắt",
+    "popup.aliasKeyPlaceholder": "Phím (vd: e)",
+    "popup.aliasValuePlaceholder": "Mã (vd: en)",
+    "popup.enableInstant": "Bật dịch tức thì cho các tên miền cụ thể",
+    "popup.instantDelay": "Độ trễ (giây)",
+    "popup.activeDomains": "Danh sách tên miền áp dụng",
+    "popup.domainPlaceholder": "example.com",
+    "popup.savePreferences": "Lưu cài đặt",
+    "popup.saved": "Đã lưu",
+    "popup.hint": "Nhập văn bản rồi thêm: <code>!![mã]</code> hoặc <code>!!t</code>.<br /><b>Ví dụ:</b> <code>Hello world !!vi</code> hoặc <code>!!t</code>",
+    "popup.aiWarning": "Yêu cầu Chrome desktop đã bật API AI; mô hình sẽ được tải xuống trong lần sử dụng đầu tiên nếu cần.",
+    
+    // Dialogs & Toasts
+    "dialog.confirmTitle": "Xác nhận dịch",
+    "dialog.revertTitle": "Đã áp dụng bản dịch",
+    "dialog.translating": "Đang dịch...",
+    "dialog.cancel": "Hủy",
+    "dialog.dismiss": "Đóng",
+    "dialog.replace": "Sử dụng",
+    "dialog.revert": "Hoàn tác",
+    "toast.translating": "Đang dịch...",
+    "toast.translationFailed": "Dịch thất bại",
+    "toast.invalidLanguage": "Ngôn ngữ hoặc phím tắt không hợp lệ",
+    "toast.extensionUpdated": "Extension đã được cập nhật. Vui lòng tải lại trang.",
+    
+    // Selection Popup
+    "selection.title": "Dịch với TransKit",
+    "selection.original": "Ngôn ngữ gốc",
+    "selection.translate": "Dịch sang",
+    "selection.copy": "Sao chép",
+    "selection.copied": "Đã sao chép!",
+    "selection.settings": "⚙️ Cài đặt",
+    
+    // Inline Suggestion
+    "suggestion.hint": "<kbd>Tab</kbd> để áp dụng • <kbd>Esc</kbd> để đóng",
+    
+    // Languages
+    "lang.auto": "Tự động phát hiện",
+    "lang.en": "Tiếng Anh",
+    "lang.vi": "Tiếng Việt",
+    "lang.zh": "Tiếng Trung",
+    "lang.ja": "Tiếng Nhật",
+    "lang.ko": "Tiếng Hàn",
+    "lang.es": "Tiếng Tây Ban Nha",
+    "lang.fr": "Tiếng Pháp",
+    "lang.de": "Tiếng Đức",
+    "lang.ru": "Tiếng Nga",
+    "lang.pt": "Tiếng Bồ Đào Nha",
+    "lang.it": "Tiếng Ý",
+    "lang.hi": "Tiếng Hindi",
+    "lang.ar": "Tiếng Ả Rập",
+    "lang.tr": "Tiếng Thổ Nhĩ Kỳ",
+    "lang.nl": "Tiếng Hà Lan",
+    "lang.pl": "Tiếng Ba Lan",
+    "lang.th": "Tiếng Thái"
+  }
+};

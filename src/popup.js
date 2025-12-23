@@ -1,4 +1,5 @@
 import { normalizeLanguageToCode } from "./common/language-map.js";
+import { i18n } from "./common/i18n.js";
 
 const enabledCheckbox = document.querySelector("#enabled");
 const settingsContainer = document.querySelector("#settings-container");
@@ -44,12 +45,38 @@ const LANGUAGES = [
   { code: "th", name: "Thai" }
 ];
 
+function translateUI() {
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    const key = el.getAttribute("data-i18n");
+    el.innerHTML = i18n.t(key);
+  });
+  
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+    const key = el.getAttribute("data-i18n-placeholder");
+    el.setAttribute("placeholder", i18n.t(key));
+  });
+  
+  // Update save button text if it's in saved state
+  if (saveBtn.textContent.includes("✅")) {
+    saveBtn.textContent = i18n.t("popup.saved");
+  } else {
+    saveBtn.textContent = i18n.t("popup.savePreferences");
+  }
+}
+
 function populateSelects() {
+  const currentNative = nativeSelect.value;
+  const currentTarget = targetSelect.value;
+
   const options = LANGUAGES.map(
-    (l) => `<option value="${l.code}">${l.name} (${l.code})</option>`
+    (l) => `<option value="${l.code}">${i18n.t("lang." + l.code) || l.name} (${l.code})</option>`
   ).join("");
+  
   nativeSelect.innerHTML = options;
   targetSelect.innerHTML = options;
+
+  if (currentNative) nativeSelect.value = currentNative;
+  if (currentTarget) targetSelect.value = currentTarget;
 }
 
 function renderAliases() {
@@ -150,6 +177,13 @@ async function loadSettings() {
     confirmModal.checked = res.settings.showConfirmModal !== false;
     currentAliases = res.settings.aliases || {};
     
+    // Load interface language
+    const lang = res.settings.interfaceLanguage || "en";
+    updateLangToggleUI(lang);
+    i18n.setLanguage(lang);
+    populateSelects();
+    translateUI();
+    
     // Load instant translate settings
     if (instantEnabledCheckbox) {
       instantEnabledCheckbox.checked = res.settings.instantTranslateEnabled || false;
@@ -166,6 +200,11 @@ async function loadSettings() {
     preferNative.checked = true;
     confirmModal.checked = true;
     currentAliases = {};
+    
+    updateLangToggleUI("en");
+    i18n.setLanguage("en");
+    populateSelects();
+    translateUI();
     
     if (instantEnabledCheckbox) {
       instantEnabledCheckbox.checked = false;
@@ -191,6 +230,7 @@ async function saveSettings() {
     preferNativeAsSource: preferNative.checked,
     showConfirmModal: confirmModal.checked,
     aliases: currentAliases,
+    interfaceLanguage: document.querySelector("#lang-toggle .active").getAttribute("data-lang"),
     // Instant translate settings
     instantTranslateEnabled: instantEnabledCheckbox?.checked || false,
     instantDelay: (parseInt(instantDelayInput?.value, 10) || 3) * 1000,
@@ -203,9 +243,9 @@ async function saveSettings() {
   });
 
   if (res?.ok) {
-    saveBtn.textContent = "✅ Saved";
+    saveBtn.textContent = i18n.t("popup.saved");
     setTimeout(() => {
-      saveBtn.textContent = "Save preferences";
+      saveBtn.textContent = i18n.t("popup.savePreferences");
     }, 1800);
   }
 }
@@ -233,6 +273,30 @@ targetSelect.addEventListener("change", saveSettings);
 timeoutInput.addEventListener("change", saveSettings);
 preferNative.addEventListener("change", saveSettings);
 confirmModal.addEventListener("change", saveSettings);
+
+const langToggle = document.querySelector("#lang-toggle");
+
+// Interface language change
+langToggle.addEventListener("click", (e) => {
+  if (e.target.hasAttribute("data-lang")) {
+    const lang = e.target.getAttribute("data-lang");
+    i18n.setLanguage(lang);
+    translateUI();
+    populateSelects(); // Update dropdowns with new language
+    updateLangToggleUI(lang);
+    saveSettings();
+  }
+});
+
+function updateLangToggleUI(lang) {
+  langToggle.querySelectorAll("span[data-lang]").forEach(span => {
+    if (span.getAttribute("data-lang") === lang) {
+      span.classList.add("active");
+    } else {
+      span.classList.remove("active");
+    }
+  });
+}
 
 // Instant translate event listeners
 if (instantEnabledCheckbox) {
