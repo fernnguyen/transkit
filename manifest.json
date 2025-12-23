@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "TransKit",
+  "name": "TransKit – Power Inline Translate Kit",
   "version": "1.0.0",
   "description": "Translate inline, domain-aware, offline-first. No tracking. Open source.",
   "author": "@FernNguyen",
