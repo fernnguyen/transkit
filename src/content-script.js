@@ -1,4 +1,5 @@
 let normalizeLanguageToCode;
+let i18n;
 
 const TRANSLATION_COMMAND_PATTERN = /!!([a-zA-ZÀ-ÿ\-]+)$/i;
 
@@ -28,6 +29,27 @@ const commonStyles = {
 (async function bootstrap() {
   const mod = await import(chrome.runtime.getURL("src/common/language-map.js"));
   normalizeLanguageToCode = mod.normalizeLanguageToCode;
+  
+  const i18nMod = await import(chrome.runtime.getURL("src/common/i18n.js"));
+  i18n = i18nMod.i18n;
+  
+  // Initialize i18n with current settings
+  getSettings().then(settings => {
+    if (settings.interfaceLanguage) {
+      i18n.setLanguage(settings.interfaceLanguage);
+    }
+  });
+
+  // Listen for setting changes
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'local' && changes.translatorSettings) {
+      const newSettings = changes.translatorSettings.newValue;
+      if (newSettings && newSettings.interfaceLanguage) {
+        i18n.setLanguage(newSettings.interfaceLanguage);
+      }
+    }
+  });
+  
   injectGlobalStylesheet();
   registerAutoDetection();
   registerInstantMode();
@@ -154,7 +176,7 @@ function buildDialog(mode = "confirm") {
 
   const title = document.createElement("div");
   title.className = "bt-title";
-  title.textContent = mode === "revert" ? "Translation Applied" : "Confirm Translation";
+  title.textContent = mode === "revert" ? i18n.t("dialog.revertTitle") : i18n.t("dialog.confirmTitle");
 
   const closeButton = document.createElement("button");
   closeButton.className = "bt-close-button";
@@ -182,11 +204,11 @@ function buildDialog(mode = "confirm") {
 
   const secondaryButton = document.createElement("button");
   secondaryButton.className = "bt-button bt-cancel";
-  secondaryButton.textContent = mode === "revert" ? "Dismiss" : "Cancel";
+  secondaryButton.textContent = mode === "revert" ? i18n.t("dialog.dismiss") : i18n.t("dialog.cancel");
 
   const primaryButton = document.createElement("button");
   primaryButton.className = "bt-button bt-confirm";
-  primaryButton.textContent = mode === "revert" ? "Revert" : "Replace";
+  primaryButton.textContent = mode === "revert" ? i18n.t("dialog.revert") : i18n.t("dialog.replace");
 
   const loading = document.createElement("div");
   loading.className = "bt-loading";
@@ -195,7 +217,7 @@ function buildDialog(mode = "confirm") {
   spinner.className = "bt-loading-spinner";
 
   loading.appendChild(spinner);
-  loading.appendChild(document.createTextNode("Translating..."));
+  loading.appendChild(document.createTextNode(i18n.t("dialog.translating")));
 
   content.appendChild(sourceText);
   content.appendChild(directionIndicator);
@@ -233,7 +255,7 @@ function buildDialog(mode = "confirm") {
 
 async function getSettings() {
   if (typeof chrome === 'undefined' || !chrome.runtime) {
-    showToast("Extension updated. Please refresh the page.");
+    showToast(i18n.t("toast.extensionUpdated"));
     return {
       enabled: false,
       nativeLanguageCode: "vi",
@@ -241,12 +263,19 @@ async function getSettings() {
       preferNativeAsSource: true,
       showConfirmModal: true,
       dialogTimeout: 10,
-      aliases: {}
+      aliases: {},
+      interfaceLanguage: "en"
     };
   }
   
   const res = await chrome.runtime.sendMessage({ type: "get-settings" });
-  if (res?.ok) return res.settings;
+  if (res?.ok) {
+    // Initialize i18n with the fetched language setting
+    if (i18n) {
+      i18n.setLanguage(res.settings.interfaceLanguage || "en");
+    }
+    return res.settings;
+  }
   return {
     enabled: true,
     nativeLanguageCode: "vi",
@@ -254,13 +283,14 @@ async function getSettings() {
     preferNativeAsSource: true,
     showConfirmModal: true,
     dialogTimeout: 10,
-    aliases: {}
+    aliases: {},
+    interfaceLanguage: "en"
   };
 }
 
 async function requestTranslation(payload) {
   if (typeof chrome === 'undefined' || !chrome.runtime) {
-    throw new Error("Extension updated. Please refresh the page.");
+    throw new Error(i18n.t("toast.extensionUpdated"));
   }
   return chrome.runtime.sendMessage({ type: "translate", payload });
 }
@@ -341,7 +371,7 @@ async function handleAutoTranslation(element, parsed) {
       settings = await getSettings();
     } catch (e) {
       if (e.message.includes("Extension context invalidated")) {
-        showToast("Extension updated. Please refresh the page.");
+        showToast(i18n.t("toast.extensionUpdated"));
         return;
       }
       throw e;
@@ -353,14 +383,14 @@ async function handleAutoTranslation(element, parsed) {
 
     if (!baseText || !baseText.trim()) return;
     if (!targetCode) {
-      showToast("Invalid language or alias");
+      showToast(i18n.t("toast.invalidLanguage"));
       return;
     }
 
     const cleanSourceValue = removeTranslationCommandSuffix(element);
     
     // Show loading toast immediately
-    showToast("Translating...");
+    showToast(i18n.t("toast.translating"));
 
     // Determine mode: "confirm" (manual) or "revert" (auto)
     const mode = settings.showConfirmModal ? "confirm" : "revert";
@@ -382,14 +412,14 @@ async function handleAutoTranslation(element, parsed) {
       });
     } catch (e) {
       if (e.message.includes("Extension context invalidated")) {
-        throw new Error("Extension updated. Please refresh the page.");
+        throw new Error(i18n.t("toast.extensionUpdated"));
       }
       throw e;
     }
 
     if (!res || !res.ok) {
       dialog.destroy();
-      showToast(res?.error ? String(res.error) : "Translation failed");
+      showToast(res?.error ? String(res.error) : i18n.t("toast.translationFailed"));
       return;
     }
 
@@ -544,7 +574,7 @@ function buildInlineSuggestion(element, translatedText, position = 'bottom') {
       <span class="bt-suggestion-icon">🌐</span>
       <span class="bt-suggestion-text">${translatedText}</span>
     </div>
-    <span class="bt-suggestion-hint"><kbd>Tab</kbd> to apply • <kbd>Esc</kbd> to dismiss</span>
+    <span class="bt-suggestion-hint">${i18n.t("suggestion.hint")}</span>
   `;
   
   document.body.appendChild(container);
@@ -661,7 +691,7 @@ async function handleInstantTranslate(element) {
   // Start new timer
   instantTimer = setTimeout(async () => {
     try {
-      showToast("Translating...");
+      showToast(i18n.t("toast.translating"));
       
       const res = await requestTranslation({
         text: text,
@@ -774,9 +804,11 @@ function hideTranslateIcon() {
   }
 }
 
-function showTranslationPopup(selectionRect, text, iconPosition) {
+async function showTranslationPopup(selectionRect, text, iconPosition) {
   hideTranslationPopup();
 
+  // Fetch settings first to ensure i18n is updated
+  const settings = await getSettings();
   
   const popup = document.createElement('div');
   const iconUrl = chrome.runtime.getURL('assets/icons/icon-16.png');
@@ -785,26 +817,26 @@ function showTranslationPopup(selectionRect, text, iconPosition) {
     <div class="bt-selection-header">
       <span class="bt-selection-title">
         <img src="${iconUrl}" width="16" height="16" alt="Translate"  style="float:left;margin-right:2px" /> 
-        <span>TransKit Translation</span>
+        <span>${i18n.t("selection.title")}</span>
       </span>
       <button class="bt-selection-close">×</button>
     </div>
     <div class="bt-selection-content">
       <div class="bt-selection-original">
         <label>
-          Original
+          ${i18n.t("selection.original")}
           <select class="bt-selection-source-select"></select>
         </label>
         <div class="bt-selection-text">${text}</div>
       </div>
       <div class="bt-selection-translated">
-        <label>Translated to <span class="bt-native-lang">Native</span></label>
-        <div class="bt-selection-text bt-loading-text">Translating...</div>
+        <label>${i18n.t("selection.translate")} <span class="bt-native-lang">Native</span></label>
+        <div class="bt-selection-text bt-loading-text">${i18n.t("dialog.translating")}</div>
       </div>
     </div>
     <div class="bt-selection-footer">
       <span class="bt-selection-version">TransKit v1.0.0</span>
-      <a href="#" class="bt-selection-settings">⚙️ Settings</a>
+      <a href="#" class="bt-selection-settings">${i18n.t("selection.settings")}</a>
     </div>
   `;
   
@@ -845,19 +877,17 @@ function showTranslationPopup(selectionRect, text, iconPosition) {
   hideTranslateIcon();
   
   // Update native language label and set default source
-  getSettings().then(settings => {
-    const nativeLang = settings.nativeLanguageCode || 'vi';
-    const targetLang = settings.targetLanguageCode || 'en'; // Default source is target language
-    
-    const langName = getLanguageName(nativeLang);
-    popup.querySelector('.bt-native-lang').textContent = langName;
-    
-    // Populate source selector with targetLang as default
-    populateSourceLanguageSelector(popup, targetLang);
-    
-    // Initial translation
-    translateSelectionWithSource(text, targetLang, popup);
-  });
+  const nativeLang = settings.nativeLanguageCode || 'vi';
+  const targetLang = settings.targetLanguageCode || 'en'; // Default source is target language
+  
+  const langName = getLanguageName(nativeLang);
+  popup.querySelector('.bt-native-lang').textContent = langName;
+  
+  // Populate source selector with targetLang as default
+  populateSourceLanguageSelector(popup, targetLang);
+  
+  // Initial translation
+  translateSelectionWithSource(text, targetLang, popup);
   
   popup.querySelector('.bt-selection-close').addEventListener('click', () => {
     hideTranslationPopup();
@@ -887,7 +917,7 @@ async function translateSelectionWithSource(text, sourceLang, popup) {
   const nativeLang = settings.nativeLanguageCode || 'vi';
   
   const translatedDiv = popup.querySelector('.bt-selection-text.bt-loading-text');
-  translatedDiv.textContent = 'Translating...';
+  translatedDiv.textContent = i18n.t("dialog.translating");
   translatedDiv.classList.add('bt-loading-text');
   
   try {
@@ -903,7 +933,7 @@ async function translateSelectionWithSource(text, sourceLang, popup) {
       translatedDiv.textContent = res.result.translation;
       translatedDiv.classList.remove('bt-loading-text');
     } else {
-      translatedDiv.textContent = 'Translation failed';
+      translatedDiv.textContent = i18n.t("toast.translationFailed");
     }
   } catch (err) {
     translatedDiv.textContent = 'Error: ' + err.message;
@@ -913,20 +943,13 @@ async function translateSelectionWithSource(text, sourceLang, popup) {
 function populateLanguageSelector(popup) {
   const select = popup.querySelector('.bt-selection-lang-select');
   const languages = [
-    { code: 'vi', name: 'Vietnamese' },
-    { code: 'en', name: 'English' },
-    { code: 'zh', name: 'Chinese' },
-    { code: 'ja', name: 'Japanese' },
-    { code: 'ko', name: 'Korean' },
-    { code: 'es', name: 'Spanish' },
-    { code: 'fr', name: 'French' },
-    { code: 'de', name: 'German' }
+    'vi', 'en', 'zh', 'ja', 'ko', 'es', 'fr', 'de'
   ];
   
-  languages.forEach(lang => {
+  languages.forEach(code => {
     const option = document.createElement('option');
-    option.value = lang.code;
-    option.textContent = lang.name;
+    option.value = code;
+    option.textContent = i18n.t("lang." + code);
     select.appendChild(option);
   });
   
@@ -996,21 +1019,13 @@ function registerSelectionMode() {
 function populateSourceLanguageSelector(popup, defaultValue = 'auto') {
   const select = popup.querySelector('.bt-selection-source-select');
   const languages = [
-    { code: 'auto', name: 'Auto-detect' },
-    { code: 'en', name: 'English' },
-    { code: 'vi', name: 'Vietnamese' },
-    { code: 'zh', name: 'Chinese' },
-    { code: 'ja', name: 'Japanese' },
-    { code: 'ko', name: 'Korean' },
-    { code: 'es', name: 'Spanish' },
-    { code: 'fr', name: 'French' },
-    { code: 'de', name: 'German' }
+    'auto', 'en', 'vi', 'zh', 'ja', 'ko', 'es', 'fr', 'de'
   ];
   
-  languages.forEach(lang => {
+  languages.forEach(code => {
     const option = document.createElement('option');
-    option.value = lang.code;
-    option.textContent = lang.name;
+    option.value = code;
+    option.textContent = i18n.t("lang." + code);
     select.appendChild(option);
   });
   
@@ -1018,15 +1033,5 @@ function populateSourceLanguageSelector(popup, defaultValue = 'auto') {
 }
 
 function getLanguageName(code) {
-  const names = {
-    'en': 'English',
-    'vi': 'Vietnamese',
-    'zh': 'Chinese',
-    'ja': 'Japanese',
-    'ko': 'Korean',
-    'es': 'Spanish',
-    'fr': 'French',
-    'de': 'German'
-  };
-  return names[code] || code.toUpperCase();
+  return i18n.t("lang." + code) || code.toUpperCase();
 }

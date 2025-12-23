@@ -390,3 +390,61 @@ input:checked + .slider:before {
   width: 19px;
   height: 19px;
 }
+
+.bt-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bt-lang-select {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background-color: white;
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  outline: none;
+}
+
+.bt-lang-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+/* Language Toggle */
+.bt-lang-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #888;
+  cursor: default;
+  user-select: none;
+  margin-right: 12px;
+}
+
+.bt-lang-toggle span[data-lang] {
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.bt-lang-toggle span[data-lang]:hover {
+  color: #333;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.bt-lang-toggle span.active {
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.bt-lang-toggle .divider {
+  color: #ddd;
+  font-size: 12px;
+}

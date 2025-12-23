@@ -34,6 +34,7 @@ async function readSettings() {
         ch: "zh",
         j: "ja"
       },
+      interfaceLanguage: "en",
       // Instant translate settings
       instantTranslateEnabled: false,
       instantDelay: 3000,
