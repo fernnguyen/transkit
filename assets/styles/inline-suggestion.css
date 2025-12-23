@@ -2,6 +2,7 @@
 
 /* Inline Suggestion */
 .bt-inline-suggestion {
+  all: initial;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(4px);
   border: 1px solid #e5e7eb;
@@ -21,6 +22,11 @@
   pointer-events: auto;
   position: relative;
   overflow: hidden; /* Contain the background pattern */
+  box-sizing: border-box;
+}
+
+.bt-inline-suggestion * {
+  box-sizing: border-box;
 }
 
 .bt-inline-suggestion::before {

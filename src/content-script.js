@@ -228,7 +228,7 @@ function removeTranslationCommandSuffix(element) {
 
 function showToast(message) {
   const host = document.createElement("div");
-  host.className = "bt-toast";
+  host.className = "bt-toast bt-vars-container";
   host.textContent = message;
   document.documentElement.appendChild(host);
   setTimeout(() => host.remove(), 2400);
@@ -417,7 +417,7 @@ function setFieldText(element, text) {
 
 function buildInlineSuggestion(element, translatedText, providerInfo, position = 'bottom') {
   const container = document.createElement('div');
-  container.className = 'bt-inline-suggestion';
+  container.className = 'bt-inline-suggestion bt-vars-container';
   
   // Position relative to input
   const rect = element.getBoundingClientRect();
@@ -636,7 +636,7 @@ function showTranslateIcon(x, y, selection) {
   const rect = range.getBoundingClientRect();
   
   const icon = document.createElement('div');
-  icon.className = 'bt-translate-icon';
+  icon.className = 'bt-translate-icon bt-vars-container';
   
   // Use extension icon instead of SVG
   const iconUrl = chrome.runtime.getURL('assets/icons/icon-32.png');
@@ -685,13 +685,13 @@ async function showTranslationPopup(selectionRect, text, iconPosition) {
   const settings = await getSettings();
   
   const popup = document.createElement('div');
-  const iconUrl = chrome.runtime.getURL('assets/icons/icon-16.png');
-  popup.className = 'bt-selection-popup';
+  const iconUrl = chrome.runtime.getURL('assets/icons/icon-19.png');
+  popup.className = 'bt-selection-popup bt-vars-container';
   popup.innerHTML = `
     <div class="bt-selection-bg-pattern"></div>
     <div class="bt-selection-header">
       <span class="bt-selection-title">
-        <img src="${iconUrl}" width="16" height="16" alt="Translate"  style="float:left;margin-right:2px" /> 
+        <img src="${iconUrl}" width="19" height="19" alt="Translate"  style="float:left;margin-right:4px" /> 
         <span>${i18n.t("selection.title")}</span>
       </span>
       <button class="bt-selection-close">×</button>
@@ -702,15 +702,26 @@ async function showTranslationPopup(selectionRect, text, iconPosition) {
           ${i18n.t("selection.original")}
           <select class="bt-selection-source-select"></select>
         </label>
-        <div class="bt-selection-text">${text}</div>
+        <div class="bt-selection-text bt-selection-content-style">${text}</div>
       </div>
       <div class="bt-selection-translated">
-        <label>${i18n.t("selection.translate")} <span class="bt-native-lang">Native</span></label>
-        <div class="bt-selection-text bt-loading-text">${i18n.t("dialog.translating")}</div>
+        <label>
+          ${i18n.t("selection.translate")}
+          <select class="bt-selection-target-select"></select>
+        </label>
+        <div class="bt-selection-result-container">
+          <div class="bt-selection-text bt-loading-text bt-selection-content-style">${i18n.t("dialog.translating")}</div>
+          <button class="bt-selection-copy-btn" title="${i18n.t("selection.copy")}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            <span class="bt-copy-feedback">${i18n.t("selection.copied")}</span>
+          </button>
+        </div>
       </div>
     </div>
     <div class="bt-selection-footer">
-      <span class="bt-selection-version">TransKit v1.0.0</span>
+      <div class="bt-selection-provider-container">
+        <!-- Provider selector or label will be injected here -->
+      </div>
       <a href="#" class="bt-selection-settings">${i18n.t("selection.settings")}</a>
     </div>
   `;
@@ -751,18 +762,26 @@ async function showTranslationPopup(selectionRect, text, iconPosition) {
   // Hide icon when popup opens
   hideTranslateIcon();
   
-  // Update native language label and set default source
+  // Populate selectors (Mirror Logic)
   const nativeLang = settings.nativeLanguageCode || 'vi';
-  const targetLang = settings.targetLanguageCode || 'en'; // Default source is target language
+  const targetLang = settings.targetLanguageCode || 'en';
   
-  const langName = getLanguageName(nativeLang);
-  popup.querySelector('.bt-native-lang').textContent = langName;
+  let defaultSource, defaultTarget;
   
-  // Populate source selector with targetLang as default
-  populateSourceLanguageSelector(popup, targetLang);
+  if (settings.preferNativeAsSource !== false) {
+    defaultSource = targetLang;
+    defaultTarget = nativeLang;
+  } else {
+    defaultSource = 'auto';
+    defaultTarget = targetLang;
+  }
+  
+  // Populate selectors
+  populateLanguageSelector(popup.querySelector('.bt-selection-source-select'), defaultSource, true);
+  populateLanguageSelector(popup.querySelector('.bt-selection-target-select'), defaultTarget, false);
   
   // Initial translation
-  translateSelectionWithSource(text, targetLang, popup);
+  translateSelectionWithSource(text, defaultSource, popup, null, defaultTarget);
   
   popup.querySelector('.bt-selection-close').addEventListener('click', () => {
     hideTranslationPopup();
@@ -770,13 +789,48 @@ async function showTranslationPopup(selectionRect, text, iconPosition) {
   });
   
   popup.querySelector('.bt-selection-source-select').addEventListener('change', (e) => {
-    translateSelectionWithSource(text, e.target.value, popup);
+    const providerSelect = popup.querySelector('.bt-selection-provider-select');
+    const providerId = providerSelect ? providerSelect.value : null;
+    const targetLang = popup.querySelector('.bt-selection-target-select').value;
+    translateSelectionWithSource(text, e.target.value, popup, providerId, targetLang);
   });
+
+  popup.querySelector('.bt-selection-target-select').addEventListener('change', (e) => {
+    const providerSelect = popup.querySelector('.bt-selection-provider-select');
+    const providerId = providerSelect ? providerSelect.value : null;
+    const sourceLang = popup.querySelector('.bt-selection-source-select').value;
+    translateSelectionWithSource(text, sourceLang, popup, providerId, e.target.value);
+  });
+
+  // Populate provider selector
+  const providerSelect = populateProviderSelector(popup, settings);
+  if (providerSelect) {
+    providerSelect.addEventListener('change', (e) => {
+      const sourceLang = popup.querySelector('.bt-selection-source-select').value;
+      const targetLang = popup.querySelector('.bt-selection-target-select').value;
+      translateSelectionWithSource(text, sourceLang, popup, e.target.value, targetLang);
+    });
+  }
   
   // Settings link
   popup.querySelector('.bt-selection-settings').addEventListener('click', (e) => {
     e.preventDefault();
     chrome.runtime.sendMessage({ type: 'open-options' });
+  });
+
+  // Copy button
+  const copyBtn = popup.querySelector('.bt-selection-copy-btn');
+  copyBtn.addEventListener('click', async () => {
+    const textToCopy = popup.querySelector('.bt-selection-translated .bt-selection-text').textContent;
+    if (!textToCopy || textToCopy === i18n.t("dialog.translating")) return;
+
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      copyBtn.classList.add('bt-copied');
+      setTimeout(() => copyBtn.classList.remove('bt-copied'), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
   });
 }
 
@@ -787,12 +841,12 @@ function hideTranslationPopup() {
   }
 }
 
-async function translateSelectionWithSource(text, sourceLang, popup) {
+async function translateSelectionWithSource(text, sourceLang, popup, providerId = null, targetLangOverride = null) {
   const settings = await getSettings();
   const nativeLang = settings.nativeLanguageCode || 'vi';
+  const targetLang = targetLangOverride || nativeLang;
   
-  const translatedDiv = popup.querySelector('.bt-selection-text.bt-loading-text');
-  const versionSpan = popup.querySelector('.bt-selection-version');
+  const translatedDiv = popup.querySelector('.bt-selection-translated .bt-selection-text');
   
   translatedDiv.textContent = i18n.t("dialog.translating");
   translatedDiv.classList.add('bt-loading-text');
@@ -801,19 +855,15 @@ async function translateSelectionWithSource(text, sourceLang, popup) {
     const res = await requestTranslation({
       text: text,
       nativeLanguageCode: nativeLang,
-      targetLanguage: nativeLang,
+      targetLanguage: targetLang,
       sourceLanguage: sourceLang, // Pass explicit source language
-      preferNativeAsSource: sourceLang === 'auto'
+      preferNativeAsSource: sourceLang === 'auto' ? false : settings.preferNativeAsSource,
+      providerId: providerId // Pass provider override
     });
     
     if (res?.ok && res.result?.translation) {
       translatedDiv.textContent = res.result.translation;
       translatedDiv.classList.remove('bt-loading-text');
-      
-      if (versionSpan) {
-        const providerName = res.result.providerName || "Unknown";
-        versionSpan.textContent = `Model: ${providerName}`;
-      }
     } else {
       translatedDiv.textContent = i18n.t("toast.translationFailed");
     }
@@ -898,11 +948,12 @@ function registerSelectionMode() {
   });
 }
 
-function populateSourceLanguageSelector(popup, defaultValue = 'auto') {
-  const select = popup.querySelector('.bt-selection-source-select');
-  const languages = [
-    'auto', 'en', 'vi', 'zh', 'ja', 'ko', 'es', 'fr', 'de'
-  ];
+function populateLanguageSelector(select, defaultValue = 'auto', includeAuto = true) {
+  if (!select) return;
+  
+  const languages = includeAuto 
+    ? ['auto', 'en', 'vi', 'zh', 'ja', 'ko', 'es', 'fr', 'de']
+    : ['en', 'vi', 'zh', 'ja', 'ko', 'es', 'fr', 'de'];
   
   languages.forEach(code => {
     const option = document.createElement('option');
@@ -912,6 +963,43 @@ function populateSourceLanguageSelector(popup, defaultValue = 'auto') {
   });
   
   select.value = defaultValue;
+}
+
+function populateProviderSelector(popup, settings) {
+  const container = popup.querySelector('.bt-selection-provider-container');
+  const providers = settings.providers || [];
+  const activeId = settings.activeProviderId || 'builtin';
+
+  if (providers.length <= 1) {
+    // Show as a label tag
+    const provider = providers[0] || { name: 'Chrome Built-in AI' };
+    const tag = document.createElement('span');
+    tag.className = 'bt-selection-provider-tag';
+    tag.textContent = `Model: ${provider.name}`;
+    container.appendChild(tag);
+  } else {
+    // Show as a select dropdown
+    const label = document.createElement('span');
+    label.className = 'bt-selection-provider-label';
+    label.textContent = 'Model: ';
+    
+    const select = document.createElement('select');
+    select.className = 'bt-selection-provider-select';
+    
+    providers.forEach(p => {
+      const option = document.createElement('option');
+      option.value = p.id;
+      option.textContent = p.name;
+      if (p.id === activeId) option.selected = true;
+      select.appendChild(option);
+    });
+    
+    container.appendChild(label);
+    container.appendChild(select);
+    
+    return select;
+  }
+  return null;
 }
 
 function getLanguageName(code) {

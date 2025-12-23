@@ -2,6 +2,7 @@
 @import url("./common.css");
 
 .bt-toast {
+  all: initial;
   box-sizing: border-box;
   display: grid;
   z-index: 9999999999;

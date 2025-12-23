@@ -139,7 +139,7 @@ export const locales = {
     // Selection Popup
     "selection.title": "Dịch với TransKit",
     "selection.original": "Ngôn ngữ gốc",
-    "selection.translate": "Dịch sang",
+    "selection.translate": "Kết quả dịch",
     "selection.copy": "Sao chép",
     "selection.copied": "Đã sao chép!",
     "selection.settings": "⚙️ Cài đặt",

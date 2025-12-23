@@ -77,23 +77,27 @@ async function runTranslation(
 
   let finalSource = source;
 
-  if (!finalSource || preferNativeAsSource === false) {
+  if (!finalSource || finalSource === "auto") {
     const detected = await detectLanguage(text);
-    finalSource = detected || source || "auto";
+    finalSource = detected || source;
   }
 
-  const pairSource = finalSource === "auto" ? undefined : finalSource;
-  const availability = await getAvailabilityForPair(pairSource || "en", target);
+  if (!finalSource || finalSource === "auto") {
+    return { ok: false, error: "Could not detect source language. Please select it manually." };
+  }
+
+  const pairSource = finalSource;
+  const availability = await getAvailabilityForPair(pairSource, target);
 
   if (availability === "unsupported")
     return {
       ok: false,
-      error: "Language pair unsupported or model unavailable"
+      error: `Language pair ${pairSource} -> ${target} is not supported by Chrome Built-in AI.`
     };
 
   try {
     const translator = await Translator.create({
-      sourceLanguage: pairSource || "auto",
+      sourceLanguage: pairSource,
       targetLanguage: target,
       monitor(m) {
         m.addEventListener("downloadprogress", () => {});
@@ -121,11 +125,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     const { text, nativeLanguageCode, targetLanguage, preferNativeAsSource, sourceLanguage } =
       message.payload || {};
 
-    // If explicit sourceLanguage is provided (and not 'auto'), use it as requestedSource
-    // Otherwise use nativeLanguageCode (legacy behavior)
+    // If sourceLanguage is 'auto', we want detection. 
+    // If it's a specific code, use it.
+    // Otherwise fallback to nativeLanguageCode only if preferNativeAsSource is true.
     const requestedSource = (sourceLanguage && sourceLanguage !== 'auto') 
       ? sourceLanguage 
-      : nativeLanguageCode;
+      : (preferNativeAsSource ? nativeLanguageCode : null);
 
     runTranslation(
       text,

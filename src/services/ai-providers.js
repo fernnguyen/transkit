@@ -181,8 +181,14 @@ export class AIProviderService {
                           { type: "gemini-nano", config: {} };
   }
 
-  getProvider() {
-    const { type, config } = this.activeProvider;
+  getProvider(providerId) {
+    let providerData = this.activeProvider;
+    
+    if (providerId) {
+      providerData = this.providers.find(p => p.id === providerId) || this.activeProvider;
+    }
+
+    const { type, config } = providerData;
     
     switch (type) {
       case "gemini":
@@ -199,8 +205,8 @@ export class AIProviderService {
     }
   }
 
-  async translate(text, sourceLang, targetLang) {
-    const provider = this.getProvider();
+  async translate(text, sourceLang, targetLang, providerId) {
+    const provider = this.getProvider(providerId);
     const translation = await provider.translate(text, sourceLang, targetLang);
     
     // If it's the special offscreen signal, return it directly
@@ -208,10 +214,15 @@ export class AIProviderService {
       return translation;
     }
 
+    // Find the actual provider used for metadata
+    const providerData = providerId 
+      ? (this.providers.find(p => p.id === providerId) || this.activeProvider)
+      : this.activeProvider;
+
     return {
       translation,
-      providerName: this.activeProvider.name,
-      providerType: this.activeProvider.type
+      providerName: providerData.name,
+      providerType: providerData.type
     };
   }
 }
