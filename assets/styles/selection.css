@@ -30,14 +30,31 @@
 
 .bt-selection-popup {
   width: 350px;
-  background: var(--bt-color-white);
-  border: var(--bt-border-width) solid var(--bt-color-border-default);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(4px);
+  border: 1px solid #e5e7eb;
   border-radius: var(--bt-radius-small);
-  box-shadow: var(--bt-shadow-default);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   animation: slideUp 0.2s ease-out;
   /* Arrow variables */
   --bt-arrow-size: 8px;
   --bt-arrow-left: 50%;
+  z-index: 2147483647;
+  overflow: hidden; /* Contain the background pattern */
+}
+
+.bt-selection-bg-pattern {
+  position: absolute;
+  top: 0;
+  left: 30%;
+  width: 100%;
+  height: 4rem;
+  background: linear-gradient(to bottom, var(--bt-color-primary-background), transparent);
+  mask-image: radial-gradient(farthest-side at top, var(--bt-color-white), #0000);
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.3;
 }
 
 /* Arrow styles */

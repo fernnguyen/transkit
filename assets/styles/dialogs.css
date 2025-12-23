@@ -216,20 +216,22 @@
 
 /* Inline Suggestion */
 .bt-inline-suggestion {
-  background: white;
-  border: 1px solid var(--bt-color-border-default);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(4px);
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
   padding: 10px 12px;
   display: flex;
   flex-direction: column;
   align-items: stretch; /* Ensure children take full width */
   gap: 8px;
-  font-family: system-ui, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   animation: slideIn 0.2s ease;
   min-width: 200px;
   max-width: 600px; /* Prevent it from getting too wide */
   text-align: left;
+  z-index: 2147483647; /* Ensure it's on top */
 }
 
 .bt-suggestion-content {

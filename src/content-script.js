@@ -823,6 +823,7 @@ async function showTranslationPopup(selectionRect, text, iconPosition) {
   const iconUrl = chrome.runtime.getURL('assets/icons/icon-16.png');
   popup.className = 'bt-selection-popup';
   popup.innerHTML = `
+    <div class="bt-selection-bg-pattern"></div>
     <div class="bt-selection-header">
       <span class="bt-selection-title">
         <img src="${iconUrl}" width="16" height="16" alt="Translate"  style="float:left;margin-right:2px" /> 
