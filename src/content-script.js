@@ -158,100 +158,7 @@ function attachStylesheetToShadowRoot(shadowRoot) {
   shadowRoot.appendChild(link);
 }
 
-function buildDialog(mode = "confirm") {
-  const shadowRoot = createOverlayShadowHost();
-  attachStylesheetToShadowRoot(shadowRoot);
 
-  const container = document.createElement("div");
-  container.className = "bt-dialog-overlay";
-  // Allow interaction with dialog even if overlay is transparent
-  container.style.pointerEvents = "none"; // Ensure clicks pass through container
-
-  const panel = document.createElement("div");
-  panel.className = "bt-dialog";
-  panel.style.pointerEvents = "auto"; // Re-enable clicks on the panel
-
-  const titleBar = document.createElement("div");
-  titleBar.className = "bt-title-bar";
-
-  const title = document.createElement("div");
-  title.className = "bt-title";
-  title.textContent = mode === "revert" ? i18n.t("dialog.revertTitle") : i18n.t("dialog.confirmTitle");
-
-  const closeButton = document.createElement("button");
-  closeButton.className = "bt-close-button";
-  closeButton.innerHTML = `<span class="bt-shortcut">ESC</span> ×`;
-  closeButton.setAttribute("aria-label", "Close (ESC)");
-
-  titleBar.appendChild(title);
-  titleBar.appendChild(closeButton);
-
-  const content = document.createElement("div");
-  content.className = "bt-content";
-
-  const sourceText = document.createElement("div");
-  sourceText.className = "bt-source-text";
-
-  const directionIndicator = document.createElement("div");
-  directionIndicator.className = "bt-indicator";
-  directionIndicator.textContent = "↓";
-
-  const translatedText = document.createElement("div");
-  translatedText.className = "bt-translated-text";
-
-  const footer = document.createElement("div");
-  footer.className = "bt-actions";
-
-  const secondaryButton = document.createElement("button");
-  secondaryButton.className = "bt-button bt-cancel";
-  secondaryButton.textContent = mode === "revert" ? i18n.t("dialog.dismiss") : i18n.t("dialog.cancel");
-
-  const primaryButton = document.createElement("button");
-  primaryButton.className = "bt-button bt-confirm";
-  primaryButton.textContent = mode === "revert" ? i18n.t("dialog.revert") : i18n.t("dialog.replace");
-
-  const loading = document.createElement("div");
-  loading.className = "bt-loading";
-
-  const spinner = document.createElement("div");
-  spinner.className = "bt-loading-spinner";
-
-  loading.appendChild(spinner);
-  loading.appendChild(document.createTextNode(i18n.t("dialog.translating")));
-
-  content.appendChild(sourceText);
-  content.appendChild(directionIndicator);
-  content.appendChild(translatedText);
-  footer.appendChild(secondaryButton);
-  footer.appendChild(primaryButton);
-  panel.appendChild(titleBar);
-  panel.appendChild(loading);
-  panel.appendChild(content);
-  panel.appendChild(footer);
-  container.appendChild(panel);
-  shadowRoot.appendChild(container);
-
-  function setLoadingVisible(visible) {
-    loading.style.display = visible ? "flex" : "none";
-    content.style.opacity = visible ? "0.6" : "1";
-  }
-
-  function destroy() {
-    shadowRoot.host.remove();
-  }
-
-  return {
-    sourceText,
-    translatedText,
-    primaryButton,
-    secondaryButton,
-    closeButton,
-    setLoadingVisible,
-    destroy,
-    shadowRoot,
-    panel
-  };
-}
 
 async function getSettings() {
   if (typeof chrome === 'undefined' || !chrome.runtime) {
@@ -360,7 +267,7 @@ function resolveTargetLanguage(raw, settings) {
 
 async function handleAutoTranslation(element, parsed) {
   isTranslating = true;
-  let dialog = null;
+  let suggestion = null;
 
   try {
     const baseText = parsed.text;
@@ -379,6 +286,9 @@ async function handleAutoTranslation(element, parsed) {
 
     if (settings.enabled === false) return;
 
+    // Skip if this domain is already handled by instant translation
+    if (isInstantDomain(settings)) return;
+
     const targetCode = resolveTargetLanguage(parsed.languageRaw, settings);
 
     if (!baseText || !baseText.trim()) return;
@@ -389,18 +299,32 @@ async function handleAutoTranslation(element, parsed) {
 
     const cleanSourceValue = removeTranslationCommandSuffix(element);
     
-    // Show loading toast immediately
-    showToast(i18n.t("toast.translating"));
+    // If confirm is OFF, just translate and replace immediately
+    if (!settings.showConfirmModal) {
+      showToast(i18n.t("toast.translating"));
+      let res;
+      try {
+        res = await requestTranslation({
+          text: cleanSourceValue,
+          nativeLanguageCode: settings.nativeLanguageCode || "en",
+          targetLanguage: targetCode,
+          preferNativeAsSource: settings.preferNativeAsSource !== false
+        });
+      } catch (e) {
+        showToast(e.message || i18n.t("toast.translationFailed"));
+        return;
+      }
 
-    // Determine mode: "confirm" (manual) or "revert" (auto)
-    const mode = settings.showConfirmModal ? "confirm" : "revert";
-    dialog = buildDialog(mode);
-    
-    dialog.sourceText.textContent = cleanSourceValue;
-    dialog.translatedText.textContent = "";
-    dialog.setLoadingVisible(true);
-    
-    // Don't refocus the input - it causes cursor to jump and ESC key issues
+      if (res?.ok && res.result?.translation) {
+        setFieldText(element, res.result.translation);
+      } else {
+        showToast(res?.error ? String(res.error) : i18n.t("toast.translationFailed"));
+      }
+      return;
+    }
+
+    // If confirm is ON, show inline suggestion
+    showToast(i18n.t("toast.translating"));
 
     let res;
     try {
@@ -411,106 +335,47 @@ async function handleAutoTranslation(element, parsed) {
         preferNativeAsSource: settings.preferNativeAsSource !== false
       });
     } catch (e) {
-      if (e.message.includes("Extension context invalidated")) {
-        throw new Error(i18n.t("toast.extensionUpdated"));
-      }
-      throw e;
+      showToast(e.message || i18n.t("toast.translationFailed"));
+      return;
     }
 
-    if (!res || !res.ok) {
-      dialog.destroy();
+    if (!res || !res.ok || !res.result?.translation) {
       showToast(res?.error ? String(res.error) : i18n.t("toast.translationFailed"));
       return;
     }
 
-    const translation = res.result?.translation ? res.result.translation : "";
-    dialog.translatedText.textContent = translation;
-    dialog.setLoadingVisible(false);
-
-    let revertTimer;
-
-    function applyTranslation() {
-      setFieldText(element, translation);
-    }
-
-    function revertTranslation() {
-      setFieldText(element, cleanSourceValue);
-      dialog.destroy();
-    }
-
-    function onPrimaryClick() {
-      if (mode === "confirm") {
-        applyTranslation();
-        dialog.destroy();
-      } else {
-        // In revert mode, primary is "Revert"
-        revertTranslation();
-      }
-    }
-
-    function onSecondaryClick() {
-      if (mode === "confirm") {
-        dialog.destroy();
-      } else {
-        // In revert mode, secondary is "Dismiss"
-        dialog.destroy();
-      }
-    }
-
-    dialog.primaryButton.addEventListener("click", onPrimaryClick);
-    dialog.secondaryButton.addEventListener("click", onSecondaryClick);
-    dialog.closeButton.addEventListener("click", onSecondaryClick);
+    const translation = res.result.translation;
+    const providerInfo = `${res.result.providerName || 'AI'} (${res.result.providerType || 'Bot'})`;
     
-    // Shadow DOM event listener
-    dialog.shadowRoot.addEventListener("keydown", (ev) => {
-      if (ev.key === "Enter") onPrimaryClick();
-      if (ev.key === "Escape") onSecondaryClick();
-    });
-
-    // Document-level ESC listener (works even when shadow DOM doesn't have focus)
-    const handleEscKey = (ev) => {
-      if (ev.key === "Escape") {
+    // Use buildInlineSuggestion instead of buildDialog
+    suggestion = buildInlineSuggestion(element, translation, providerInfo, 'bottom');
+    
+    // Setup Tab/Esc handlers
+    const handleKeydown = (ev) => {
+      if (ev.key === "Tab") {
         ev.preventDefault();
-        ev.stopPropagation();
-        ev.stopImmediatePropagation();
-        onSecondaryClick();
+        setFieldText(element, translation);
+        suggestion.destroy();
+        document.removeEventListener("keydown", handleKeydown, true);
+      } else if (ev.key === "Escape") {
+        ev.preventDefault();
+        suggestion.destroy();
+        document.removeEventListener("keydown", handleKeydown, true);
       }
     };
-    document.addEventListener("keydown", handleEscKey, true); // Use capture phase
 
-    // Cleanup function to remove document listener
-    const originalDestroy = dialog.destroy;
-    dialog.destroy = () => {
-      document.removeEventListener("keydown", handleEscKey, true);
-      originalDestroy();
+    document.addEventListener("keydown", handleKeydown, true);
+
+    // Cleanup if element loses focus or is removed
+    const onBlur = () => {
+      suggestion.destroy();
+      document.removeEventListener("keydown", handleKeydown, true);
+      element.removeEventListener("blur", onBlur);
     };
-
-    if (mode === "revert") {
-      // Auto-apply immediately
-      applyTranslation();
-      
-      // Setup auto-dismiss
-      const timeoutSec = settings.dialogTimeout || 10;
-      
-      // Update UI to show it's done but reversible
-      // Primary button becomes Revert
-      // Secondary becomes Dismiss
-      
-      revertTimer = setTimeout(() => {
-        dialog.destroy();
-      }, timeoutSec * 1000);
-
-      // Pause timer on hover
-      dialog.panel.addEventListener("mouseenter", () => clearTimeout(revertTimer));
-      dialog.panel.addEventListener("mouseleave", () => {
-        revertTimer = setTimeout(() => {
-          dialog.destroy();
-        }, timeoutSec * 1000);
-      });
-    }
+    element.addEventListener("blur", onBlur);
 
   } catch (err) {
-    if (dialog) dialog.destroy();
+    if (suggestion) suggestion.destroy();
     showToast(err.message || "An error occurred");
     console.error(err);
   } finally {
