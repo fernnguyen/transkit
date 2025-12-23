@@ -1,3 +1,5 @@
+import { AIProviderService } from "./services/ai-providers.js";
+
 const OFFSCREEN_URL = chrome.runtime.getURL("../pages/offscreen.html");
 const SETTINGS_KEY = "translatorSettings";
 
@@ -45,6 +47,16 @@ async function readSettings() {
         { domain: "openai.com", enabled: true, position: "top" },
         { domain: "claude.ai", enabled: true, position: "top" },
         { domain: "gemini.google.com", enabled: true, position: "top" }
+      ],
+      // AI Provider settings
+      activeProviderId: "builtin",
+      providers: [
+        {
+          id: "builtin",
+          type: "gemini-nano",
+          name: "Chrome Built-in AI",
+          config: {}
+        }
       ]
     }
   );
@@ -74,22 +86,50 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message?.type === "translate") {
-    ensureOffscreen().then(() => {
-      chrome.runtime
-        .sendMessage({ type: "offscreen-translate", payload: message.payload })
-        .then((result) => {
-          if (result?.ok) {
-            sendResponse({ ok: true, result });
+    readSettings().then(async (settings) => {
+      // Extract payload using keys sent by content-script.js
+      const { text, nativeLanguageCode, targetLanguage, sourceLanguage } = message.payload;
+      
+      // Map to standardized keys for AIProviderService
+      // Use 'auto' if sourceLanguage is not explicitly provided
+      const sourceLang = sourceLanguage || "auto"; 
+      const targetLang = targetLanguage;
+
+      const aiService = new AIProviderService(settings);
+
+      try {
+        const result = await aiService.translate(text, sourceLang, targetLang);
+        
+        // If result is the special signal for Window AI, use offscreen
+        if (result?.useOffscreen) {
+          await ensureOffscreen();
+          const offscreenResult = await chrome.runtime.sendMessage({ 
+            type: "offscreen-translate", 
+            payload: message.payload 
+          });
+          
+          if (offscreenResult?.ok) {
+            // offscreenResult IS the result object expected by content-script
+            sendResponse({ ok: true, result: offscreenResult });
           } else {
-            sendResponse({
-              ok: false,
-              error: result?.error || "Unknown error"
-            });
+            sendResponse({ ok: false, error: offscreenResult?.error || "Unknown error" });
           }
-        })
-        .catch((err) =>
-          sendResponse({ ok: false, error: String(err?.message || err) })
-        );
+        } else {
+          // Result is the translated text from an API provider
+          // Wrap it in the format expected by content-script
+          sendResponse({ 
+            ok: true, 
+            result: {
+              translation: result,
+              sourceLanguage: sourceLang,
+              targetLanguage: targetLang
+            }
+          });
+        }
+      } catch (err) {
+        console.error("Translation Error:", err);
+        sendResponse({ ok: false, error: String(err?.message || err) });
+      }
     });
 
     return true;

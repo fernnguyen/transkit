@@ -22,8 +22,22 @@ const domainListEl = document.querySelector("#instant-domain-list");
 const newDomainInput = document.querySelector("#new-domain");
 const addDomainBtn = document.querySelector("#add-domain");
 
+// Provider List elements
+const providerListEl = document.querySelector("#provider-list");
+const btnAddProvider = document.querySelector("#btn-add-provider");
+const providerForm = document.querySelector("#provider-form");
+const formTitle = document.querySelector("#form-title");
+const formType = document.querySelector("#form-type");
+const formName = document.querySelector("#form-name");
+const formDynamicFields = document.querySelector("#form-dynamic-fields");
+const btnFormCancel = document.querySelector("#form-cancel");
+const btnFormSave = document.querySelector("#form-save");
+
 let currentAliases = {};
 let currentDomains = [];
+let providers = [];
+let activeProviderId = "builtin";
+let editingProviderId = null;
 
 const LANGUAGES = [
   { code: "en", name: "English" },
@@ -56,7 +70,6 @@ function translateUI() {
     el.setAttribute("placeholder", i18n.t(key));
   });
   
-  // Update save button text if it's in saved state
   if (saveBtn.textContent.includes("✅")) {
     saveBtn.textContent = i18n.t("popup.saved");
   } else {
@@ -96,16 +109,9 @@ function renderAliases() {
       const key = e.target.dataset.key;
       delete currentAliases[key];
       renderAliases();
+      saveSettings();
     });
   });
-}
-
-function updateSettingsVisibility() {
-  if (enabledCheckbox.checked) {
-    settingsContainer.removeAttribute("disabled");
-  } else {
-    settingsContainer.setAttribute("disabled", "true");
-  }
 }
 
 function renderDomains() {
@@ -127,7 +133,6 @@ function renderDomains() {
     domainListEl.appendChild(div);
   });
   
-  // Add event listeners for checkboxes
   domainListEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
     cb.addEventListener('change', (e) => {
       currentDomains[e.target.dataset.index].enabled = e.target.checked;
@@ -135,7 +140,6 @@ function renderDomains() {
     });
   });
   
-  // Add event listeners for position selects
   domainListEl.querySelectorAll('.bt-position-select').forEach(select => {
     select.addEventListener('change', (e) => {
       currentDomains[e.target.dataset.index].position = e.target.value;
@@ -143,7 +147,6 @@ function renderDomains() {
     });
   });
   
-  // Add event listeners for remove buttons
   domainListEl.querySelectorAll('.bt-remove-alias').forEach(btn => {
     btn.addEventListener('click', (e) => {
       currentDomains.splice(e.target.dataset.index, 1);
@@ -151,6 +154,246 @@ function renderDomains() {
       saveSettings();
     });
   });
+}
+
+function renderProviderList() {
+  providerListEl.innerHTML = "";
+  
+  providers.forEach(p => {
+    const isActive = p.id === activeProviderId;
+    const isBuiltin = p.id === "builtin";
+    
+    const el = document.createElement("div");
+    el.className = `bt-provider-item ${isActive ? 'active' : ''}`;
+    
+    // Actions
+    let actionsHtml = '';
+    if (isActive) {
+      actionsHtml += `<span class="bt-badge-active">${i18n.t("popup.active")}</span>`;
+    } else {
+      actionsHtml += `<button class="bt-btn-text btn-set-active" data-id="${p.id}">${i18n.t("popup.use")}</button>`;
+    }
+    
+    if (!isBuiltin) {
+      actionsHtml += `<button class="bt-btn-text btn-edit" data-id="${p.id}">${i18n.t("popup.edit")}</button>`;
+      actionsHtml += `<button class="bt-btn-text btn-delete" data-id="${p.id}">${i18n.t("popup.delete")}</button>`;
+    }
+
+    el.innerHTML = `
+      <div class="bt-provider-info">
+        <div class="bt-provider-name">${p.name}</div>
+        <div class="bt-provider-type">${p.type}</div>
+      </div>
+      <div class="bt-provider-actions">
+        ${actionsHtml}
+      </div>
+    `;
+    providerListEl.appendChild(el);
+  });
+
+  // Attach events
+  providerListEl.querySelectorAll(".btn-set-active").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      activeProviderId = e.target.dataset.id;
+      renderProviderList();
+      saveSettings();
+    });
+  });
+
+  providerListEl.querySelectorAll(".btn-delete").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      if (confirm("Delete this provider?")) {
+        providers = providers.filter(p => p.id !== e.target.dataset.id);
+        if (activeProviderId === e.target.dataset.id) {
+          activeProviderId = "builtin";
+        }
+        renderProviderList();
+        saveSettings();
+      }
+    });
+  });
+
+  providerListEl.querySelectorAll(".btn-edit").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const p = providers.find(item => item.id === e.target.dataset.id);
+      if (p) openProviderForm(p);
+    });
+  });
+}
+
+function getProviderInfo(type) {
+  switch (type) {
+    case 'gemini':
+      return {
+        link: 'https://aistudio.google.com/app/apikey',
+        text: 'Google AI Studio'
+      };
+    case 'openai':
+      return {
+        link: 'https://platform.openai.com/api-keys',
+        text: 'OpenAI Platform'
+      };
+    case 'openrouter':
+      return {
+        link: 'https://openrouter.ai/keys',
+        text: 'OpenRouter'
+      };
+    case 'deepl':
+      return {
+        link: 'https://www.deepl.com/your-account/keys',
+        text: 'DeepL Account'
+      };
+    default:
+      return null;
+  }
+}
+
+function renderFormFields(type, config = {}) {
+  formDynamicFields.innerHTML = "";
+  
+  // Info Link
+  const info = getProviderInfo(type);
+  if (info) {
+    const infoDiv = document.createElement("div");
+    infoDiv.className = "bt-provider-help";
+    infoDiv.innerHTML = `
+      <a href="${info.link}" target="_blank" class="bt-link">${i18n.t("popup.getApiKey")} (${info.text}) ↗</a>
+    `;
+    formDynamicFields.appendChild(infoDiv);
+  }
+
+  if (type === "gemini") {
+    const model = config.model || "gemini-1.5-flash-latest";
+    formDynamicFields.insertAdjacentHTML('beforeend', `
+      <div class="bt-field">
+        <label>API Key</label>
+        <input type="password" id="field-apiKey" class="bt-input api-key-input" value="${config.apiKey || ''}" />
+      </div>
+      <div class="bt-field">
+        <label>Model</label>
+        <input type="text" id="field-model" class="bt-input" value="${model}" placeholder="gemini-1.5-flash-latest" />
+      </div>
+    `);
+  } else if (type === "openai") {
+    const model = config.model || "gpt-3.5-turbo";
+    formDynamicFields.insertAdjacentHTML('beforeend', `
+      <div class="bt-field">
+        <label>API Key</label>
+        <input type="password" id="field-apiKey" class="bt-input api-key-input" value="${config.apiKey || ''}" />
+      </div>
+      <div class="bt-field">
+        <label>Model</label>
+        <input type="text" id="field-model" class="bt-input" value="${model}" placeholder="gpt-3.5-turbo" />
+      </div>
+      <div class="bt-field">
+        <label>Base URL (Optional)</label>
+        <input type="text" id="field-baseUrl" class="bt-input" value="${config.baseUrl || ''}" placeholder="https://api.openai.com/v1" />
+      </div>
+    `);
+  } else if (type === "openrouter") {
+    const model = config.model || "google/gemini-2.0-flash-exp:free";
+    formDynamicFields.insertAdjacentHTML('beforeend', `
+      <div class="bt-field">
+        <label>API Key</label>
+        <input type="password" id="field-apiKey" class="bt-input api-key-input" value="${config.apiKey || ''}" />
+      </div>
+      <div class="bt-field">
+        <label>Model</label>
+        <input type="text" id="field-model" class="bt-input" value="${model}" placeholder="google/gemini-2.0-flash-exp:free" />
+      </div>
+    `);
+  } else if (type === "deepl") {
+    formDynamicFields.insertAdjacentHTML('beforeend', `
+      <div class="bt-field">
+        <label>API Key</label>
+        <input type="password" id="field-apiKey" class="bt-input api-key-input" value="${config.apiKey || ''}" />
+      </div>
+    `);
+  }
+  
+  // Security Note
+  formDynamicFields.insertAdjacentHTML('beforeend', `
+    <div class="bt-security-note">
+      <span class="bt-icon-shield">🛡️</span> ${i18n.t("popup.securityNote")}
+    </div>
+  `);
+}
+
+function openProviderForm(provider = null) {
+  editingProviderId = provider ? provider.id : null;
+  formTitle.textContent = provider ? "Edit Provider" : "Add Provider";
+  formType.value = provider ? provider.type : "gemini";
+  formType.disabled = !!provider; // Cannot change type when editing
+  formName.value = provider ? provider.name : "";
+  
+  renderFormFields(formType.value, provider ? provider.config : {});
+  
+  providerListEl.parentElement.hidden = true;
+  providerForm.hidden = false;
+  
+  // Hide main save button
+  saveBtn.style.display = 'none';
+}
+
+function closeProviderForm() {
+  providerForm.hidden = true;
+  providerListEl.parentElement.hidden = false;
+  editingProviderId = null;
+  
+  // Show main save button
+  saveBtn.style.display = 'block';
+}
+
+function saveProviderFromForm() {
+  const type = formType.value;
+  const name = formName.value.trim() || type;
+  const config = {};
+  
+  const apiKeyEl = document.querySelector("#field-apiKey");
+  if (apiKeyEl) config.apiKey = apiKeyEl.value.trim();
+  
+  const modelEl = document.querySelector("#field-model");
+  if (modelEl) config.model = modelEl.value;
+  
+  const baseUrlEl = document.querySelector("#field-baseUrl");
+  if (baseUrlEl) config.baseUrl = baseUrlEl.value.trim();
+
+  if (editingProviderId) {
+    // Update
+    const idx = providers.findIndex(p => p.id === editingProviderId);
+    if (idx !== -1) {
+      providers[idx].name = name;
+      providers[idx].config = config;
+    }
+  } else {
+    // Create
+    const newId = crypto.randomUUID();
+    providers.push({
+      id: newId,
+      type,
+      name,
+      config
+    });
+    // If it's the first custom provider, maybe set it as default? No, keep builtin default.
+  }
+  
+  saveSettings();
+  renderProviderList();
+  closeProviderForm();
+}
+
+// Event Listeners for Form
+btnAddProvider.addEventListener("click", () => openProviderForm(null));
+btnFormCancel.addEventListener("click", closeProviderForm);
+btnFormSave.addEventListener("click", saveProviderFromForm);
+formType.addEventListener("change", () => renderFormFields(formType.value));
+
+function updateSettingsVisibility() {
+  if (enabledCheckbox.checked) {
+    settingsContainer.removeAttribute("disabled");
+  } else {
+    settingsContainer.setAttribute("disabled", "true");
+  }
 }
 
 function toggleInstantSettings() {
@@ -177,14 +420,12 @@ async function loadSettings() {
     confirmModal.checked = res.settings.showConfirmModal !== false;
     currentAliases = res.settings.aliases || {};
     
-    // Load interface language
     const lang = res.settings.interfaceLanguage || "en";
     updateLangToggleUI(lang);
     i18n.setLanguage(lang);
     populateSelects();
     translateUI();
     
-    // Load instant translate settings
     if (instantEnabledCheckbox) {
       instantEnabledCheckbox.checked = res.settings.instantTranslateEnabled || false;
     }
@@ -192,7 +433,15 @@ async function loadSettings() {
       instantDelayInput.value = (res.settings.instantDelay || 3000) / 1000;
     }
     currentDomains = res.settings.instantDomains || [];
+
+    // Load Providers
+    providers = res.settings.providers || [
+      { id: "builtin", type: "gemini-nano", name: "Chrome Built-in AI", config: {} }
+    ];
+    activeProviderId = res.settings.activeProviderId || "builtin";
+    
   } else {
+    // Defaults
     enabledCheckbox.checked = true;
     nativeSelect.value = "en";
     targetSelect.value = "es";
@@ -206,17 +455,17 @@ async function loadSettings() {
     populateSelects();
     translateUI();
     
-    if (instantEnabledCheckbox) {
-      instantEnabledCheckbox.checked = false;
-    }
-    if (instantDelayInput) {
-      instantDelayInput.value = 3;
-    }
+    if (instantEnabledCheckbox) instantEnabledCheckbox.checked = false;
+    if (instantDelayInput) instantDelayInput.value = 3;
     currentDomains = [];
+    
+    providers = [{ id: "builtin", type: "gemini-nano", name: "Chrome Built-in AI", config: {} }];
+    activeProviderId = "builtin";
   }
   
   renderAliases();
   renderDomains();
+  renderProviderList();
   updateSettingsVisibility();
   toggleInstantSettings();
 }
@@ -231,10 +480,12 @@ async function saveSettings() {
     showConfirmModal: confirmModal.checked,
     aliases: currentAliases,
     interfaceLanguage: document.querySelector("#lang-toggle .active").getAttribute("data-lang"),
-    // Instant translate settings
     instantTranslateEnabled: instantEnabledCheckbox?.checked || false,
     instantDelay: (parseInt(instantDelayInput?.value, 10) || 3) * 1000,
-    instantDomains: currentDomains
+    instantDomains: currentDomains,
+    // New Provider Structure
+    providers,
+    activeProviderId
   };
 
   const res = await chrome.runtime.sendMessage({
@@ -258,11 +509,10 @@ addAliasBtn.addEventListener("click", () => {
     aliasKeyInput.value = "";
     aliasValueInput.value = "";
     renderAliases();
-    saveSettings(); // Auto-save when alias added
+    saveSettings();
   }
 });
 
-// Auto-save on any setting change
 enabledCheckbox.addEventListener("change", () => {
   updateSettingsVisibility();
   saveSettings();
@@ -276,13 +526,12 @@ confirmModal.addEventListener("change", saveSettings);
 
 const langToggle = document.querySelector("#lang-toggle");
 
-// Interface language change
 langToggle.addEventListener("click", (e) => {
   if (e.target.hasAttribute("data-lang")) {
     const lang = e.target.getAttribute("data-lang");
     i18n.setLanguage(lang);
     translateUI();
-    populateSelects(); // Update dropdowns with new language
+    populateSelects();
     updateLangToggleUI(lang);
     saveSettings();
   }
@@ -298,7 +547,6 @@ function updateLangToggleUI(lang) {
   });
 }
 
-// Instant translate event listeners
 if (instantEnabledCheckbox) {
   instantEnabledCheckbox.addEventListener("change", () => {
     toggleInstantSettings();
@@ -321,6 +569,16 @@ if (addDomainBtn && newDomainInput) {
     }
   });
 }
+
+document.querySelectorAll('.bt-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.bt-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.bt-tab-content').forEach(c => c.classList.remove('active'));
+    
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
 
 saveBtn.addEventListener("click", saveSettings);
 
