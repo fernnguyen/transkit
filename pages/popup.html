@@ -34,65 +34,112 @@
         <p data-i18n="popup.subtitle">Instant AI-powered translation.</p>
       </div>
 
+      <!-- Tabs Navigation -->
+      <div class="bt-tabs">
+        <div class="bt-tab active" data-tab="general" data-i18n="popup.tabGeneral">General</div>
+        <div class="bt-tab" data-tab="ai-provider" data-i18n="popup.tabAIProvider">AI Provider</div>
+      </div>
+
       <div id="settings-container" class="bt-settings-container">
-        <div class="bt-row">
-          <div class="bt-field">
-            <label for="native" data-i18n="popup.nativeLanguage">Native Language</label>
-            <select id="native" class="bt-input"></select>
+        <!-- General Tab Content -->
+        <div id="tab-general" class="bt-tab-content active">
+          <div class="bt-row">
+            <div class="bt-field">
+              <label for="native" data-i18n="popup.nativeLanguage">Native Language</label>
+              <select id="native" class="bt-input"></select>
+            </div>
+
+            <div class="bt-field">
+              <label for="target" data-i18n="popup.defaultTarget">Default Target</label>
+              <select id="target" class="bt-input"></select>
+            </div>
           </div>
 
           <div class="bt-field">
-            <label for="target" data-i18n="popup.defaultTarget">Default Target</label>
-            <select id="target" class="bt-input"></select>
+            <label for="timeout" data-i18n="popup.revertTimeout">Revert Timeout (seconds)</label>
+            <input type="number" id="timeout" class="bt-input" min="1" max="60" />
           </div>
-        </div>
 
-        <div class="bt-field">
-          <label for="timeout" data-i18n="popup.revertTimeout">Revert Timeout (seconds)</label>
-          <input type="number" id="timeout" class="bt-input" min="1" max="60" />
-        </div>
-
-        <div class="bt-field-row">
-          <input type="checkbox" id="prefer-native" />
-          <label for="prefer-native" data-i18n="popup.preferNative">Prefer Native as Source</label>
-        </div>
-
-        <div class="bt-field-row">
-          <input type="checkbox" id="confirm-modal" />
-          <label for="confirm-modal" data-i18n="popup.showConfirmModal">Show Confirm Modal</label>
-        </div>
-
-        <div class="bt-divider"></div>
-
-        <div class="bt-field">
-          <label data-i18n="popup.aliases">Aliases</label>
-          <div class="bt-alias-input-group">
-            <input type="text" id="alias-key" placeholder="Key (e.g. e)" data-i18n-placeholder="popup.aliasKeyPlaceholder" />
-            <input type="text" id="alias-value" placeholder="Code (e.g. en)" data-i18n-placeholder="popup.aliasValuePlaceholder" />
-            <button id="add-alias" class="bt-button-small">+</button>
+          <div class="bt-field-row">
+            <input type="checkbox" id="prefer-native" />
+            <label for="prefer-native" data-i18n="popup.preferNative">Prefer Native as Source</label>
           </div>
-          <div id="alias-list" class="bt-alias-list"></div>
-        </div>
 
-        <div class="bt-divider"></div>
+          <div class="bt-field-row">
+            <input type="checkbox" id="confirm-modal" />
+            <label for="confirm-modal" data-i18n="popup.showConfirmModal">Show Confirm Modal</label>
+          </div>
 
-        <div class="bt-field-row">
-          <input type="checkbox" id="instant-translate-enabled" />
-          <label for="instant-translate-enabled" data-i18n="popup.enableInstant">Enable Instant Translate for specific domains</label>
-        </div>
+          <div class="bt-divider"></div>
 
-        <div id="instant-settings" class="bt-instant-settings" hidden>
           <div class="bt-field">
-            <label for="instant-delay" data-i18n="popup.instantDelay">Delay (seconds)</label>
-            <input type="number" id="instant-delay" class="bt-input" min="1" max="10" value="3" />
+            <label data-i18n="popup.aliases">Aliases</label>
+            <div class="bt-alias-input-group">
+              <input type="text" id="alias-key" placeholder="Key (e.g. e)" data-i18n-placeholder="popup.aliasKeyPlaceholder" />
+              <input type="text" id="alias-value" placeholder="Code (e.g. en)" data-i18n-placeholder="popup.aliasValuePlaceholder" />
+              <button id="add-alias" class="bt-button-small">+</button>
+            </div>
+            <div id="alias-list" class="bt-alias-list"></div>
           </div>
-          
-          <div class="bt-field">
-            <label data-i18n="popup.activeDomains">Active Domains</label>
-            <div id="instant-domain-list" class="bt-domain-list"></div>
-            <div class="bt-domain-input-group">
-              <input type="text" id="new-domain" placeholder="example.com" data-i18n-placeholder="popup.domainPlaceholder" />
-              <button id="add-domain" class="bt-button-small">+</button>
+
+          <div class="bt-divider"></div>
+
+          <div class="bt-field-row">
+            <input type="checkbox" id="instant-translate-enabled" />
+            <label for="instant-translate-enabled" data-i18n="popup.enableInstant">Enable Instant Translate for specific domains</label>
+          </div>
+
+          <div id="instant-settings" class="bt-instant-settings" hidden>
+            <div class="bt-field">
+              <label for="instant-delay" data-i18n="popup.instantDelay">Delay (seconds)</label>
+              <input type="number" id="instant-delay" class="bt-input" min="1" max="10" value="3" />
+            </div>
+            
+            <div class="bt-field">
+              <label data-i18n="popup.activeDomains">Active Domains</label>
+              <div id="instant-domain-list" class="bt-domain-list"></div>
+              <div class="bt-domain-input-group">
+                <input type="text" id="new-domain" placeholder="example.com" data-i18n-placeholder="popup.domainPlaceholder" />
+                <button id="add-domain" class="bt-button-small">+</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Provider Tab Content -->
+        <div id="tab-ai-provider" class="bt-tab-content">
+          <div class="bt-provider-list-container">
+            <div id="provider-list" class="bt-provider-list">
+              <!-- Provider items will be injected here -->
+            </div>
+            <button id="btn-add-provider" class="bt-button bt-button-outline" data-i18n="popup.addProvider">+ Add Provider</button>
+          </div>
+
+          <!-- Add/Edit Provider Form (Hidden by default) -->
+          <div id="provider-form" class="bt-provider-form" hidden>
+            <h3 id="form-title" class="bt-form-title">Add Provider</h3>
+            
+            <div class="bt-field">
+              <label data-i18n="popup.providerType">Provider Type</label>
+              <select id="form-type" class="bt-input">
+                <option value="gemini">Google Gemini</option>
+                <option value="openai">OpenAI (GPT)</option>
+                <option value="openrouter">OpenRouter</option>
+                <option value="deepl">DeepL</option>
+              </select>
+            </div>
+
+            <div class="bt-field">
+              <label data-i18n="popup.providerName">Name</label>
+              <input type="text" id="form-name" class="bt-input" placeholder="e.g. My Gemini" />
+            </div>
+
+            <!-- Dynamic Fields Container -->
+            <div id="form-dynamic-fields"></div>
+
+            <div class="bt-actions bt-row">
+              <button id="form-cancel" class="bt-button bt-button-secondary" data-i18n="dialog.cancel">Cancel</button>
+              <button id="form-save" class="bt-button" data-i18n="popup.save">Save</button>
             </div>
           </div>
         </div>
