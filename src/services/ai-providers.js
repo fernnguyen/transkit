@@ -201,6 +201,17 @@ export class AIProviderService {
 
   async translate(text, sourceLang, targetLang) {
     const provider = this.getProvider();
-    return await provider.translate(text, sourceLang, targetLang);
+    const translation = await provider.translate(text, sourceLang, targetLang);
+    
+    // If it's the special offscreen signal, return it directly
+    if (translation && typeof translation === 'object' && translation.useOffscreen) {
+      return translation;
+    }
+
+    return {
+      translation,
+      providerName: this.activeProvider.name,
+      providerType: this.activeProvider.type
+    };
   }
 }

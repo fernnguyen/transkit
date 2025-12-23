@@ -109,18 +109,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           });
           
           if (offscreenResult?.ok) {
-            // offscreenResult IS the result object expected by content-script
-            sendResponse({ ok: true, result: offscreenResult });
+            // offscreenResult is { ok: true, translation: "...", ... }
+            // We need to construct the result object expected by content-script
+            const resultObj = {
+              translation: offscreenResult.translation,
+              sourceLanguage: offscreenResult.sourceLanguage,
+              targetLanguage: offscreenResult.targetLanguage,
+              providerName: offscreenResult.providerName || "Window AI",
+              providerType: offscreenResult.providerType || "Built-in"
+            };
+            
+            sendResponse({ ok: true, result: resultObj });
           } else {
             sendResponse({ ok: false, error: offscreenResult?.error || "Unknown error" });
           }
         } else {
-          // Result is the translated text from an API provider
-          // Wrap it in the format expected by content-script
+          // Result is the object { translation, providerName, providerType }
           sendResponse({ 
             ok: true, 
             result: {
-              translation: result,
+              translation: result.translation,
+              providerName: result.providerName,
+              providerType: result.providerType,
               sourceLanguage: sourceLang,
               targetLanguage: targetLang
             }

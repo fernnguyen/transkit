@@ -550,7 +550,7 @@ function setFieldText(element, text) {
   }
 }
 
-function buildInlineSuggestion(element, translatedText, position = 'bottom') {
+function buildInlineSuggestion(element, translatedText, providerInfo, position = 'bottom') {
   const container = document.createElement('div');
   container.className = 'bt-inline-suggestion';
   
@@ -569,12 +569,20 @@ function buildInlineSuggestion(element, translatedText, position = 'bottom') {
   container.style.left = `${rect.left}px`;
   container.style.width = `${rect.width - 80}px`;
   
+  // Extract just the name for the tag if possible, or use the whole string
+  // providerInfo is like "Name (Type)"
+  const modelName = providerInfo ? providerInfo.split('(')[0].trim() : "AI";
+  const iconUrl = chrome.runtime.getURL('assets/icons/icon-19.png');
+  
   container.innerHTML = `
     <div class="bt-suggestion-content">
-      <span class="bt-suggestion-icon">🌐</span>
+      <img src="${iconUrl}" class="bt-suggestion-icon" alt="TransKit" />
       <span class="bt-suggestion-text">${translatedText}</span>
     </div>
-    <span class="bt-suggestion-hint">${i18n.t("suggestion.hint")}</span>
+    <div class="bt-suggestion-footer">
+      <span class="bt-model-tag">${modelName}</span>
+      <span class="bt-suggestion-hint">${i18n.t("suggestion.hint")}</span>
+    </div>
   `;
   
   document.body.appendChild(container);
@@ -702,7 +710,8 @@ async function handleInstantTranslate(element) {
       
       if (res?.ok && res.result?.translation) {
         const position = domainConfig.position || 'bottom';
-        currentSuggestion = buildInlineSuggestion(element, res.result.translation, position);
+        const providerInfo = `${res.result.providerName || 'AI'} (${res.result.providerType || 'Bot'})`;
+        currentSuggestion = buildInlineSuggestion(element, res.result.translation, providerInfo, position);
         setupSuggestionKeyHandlers(element, currentSuggestion);
       }
     } catch (err) {
@@ -917,6 +926,8 @@ async function translateSelectionWithSource(text, sourceLang, popup) {
   const nativeLang = settings.nativeLanguageCode || 'vi';
   
   const translatedDiv = popup.querySelector('.bt-selection-text.bt-loading-text');
+  const versionSpan = popup.querySelector('.bt-selection-version');
+  
   translatedDiv.textContent = i18n.t("dialog.translating");
   translatedDiv.classList.add('bt-loading-text');
   
@@ -932,6 +943,11 @@ async function translateSelectionWithSource(text, sourceLang, popup) {
     if (res?.ok && res.result?.translation) {
       translatedDiv.textContent = res.result.translation;
       translatedDiv.classList.remove('bt-loading-text');
+      
+      if (versionSpan) {
+        const providerName = res.result.providerName || "Unknown";
+        versionSpan.textContent = `Model: ${providerName}`;
+      }
     } else {
       translatedDiv.textContent = i18n.t("toast.translationFailed");
     }
