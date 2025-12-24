@@ -266,11 +266,11 @@ function renderFormFields(type, config = {}) {
     const model = config.model || "gemini-1.5-flash-latest";
     formDynamicFields.insertAdjacentHTML('beforeend', `
       <div class="bt-field">
-        <label>API Key</label>
+        <label>${i18n.t("popup.apiKey")}</label>
         <input type="password" id="field-apiKey" class="bt-input api-key-input" value="${config.apiKey || ''}" />
       </div>
       <div class="bt-field">
-        <label>Model</label>
+        <label>${i18n.t("popup.model")}</label>
         <input type="text" id="field-model" class="bt-input" value="${model}" placeholder="gemini-1.5-flash-latest" />
       </div>
     `);
@@ -278,15 +278,15 @@ function renderFormFields(type, config = {}) {
     const model = config.model || "gpt-3.5-turbo";
     formDynamicFields.insertAdjacentHTML('beforeend', `
       <div class="bt-field">
-        <label>API Key</label>
+        <label>${i18n.t("popup.apiKey")}</label>
         <input type="password" id="field-apiKey" class="bt-input api-key-input" value="${config.apiKey || ''}" />
       </div>
       <div class="bt-field">
-        <label>Model</label>
+        <label>${i18n.t("popup.model")}</label>
         <input type="text" id="field-model" class="bt-input" value="${model}" placeholder="gpt-3.5-turbo" />
       </div>
       <div class="bt-field">
-        <label>Base URL (Optional)</label>
+        <label>${i18n.t("popup.baseUrl")}</label>
         <input type="text" id="field-baseUrl" class="bt-input" value="${config.baseUrl || ''}" placeholder="https://api.openai.com/v1" />
       </div>
     `);
@@ -294,18 +294,18 @@ function renderFormFields(type, config = {}) {
     const model = config.model || "google/gemini-2.0-flash-exp:free";
     formDynamicFields.insertAdjacentHTML('beforeend', `
       <div class="bt-field">
-        <label>API Key</label>
+        <label>${i18n.t("popup.apiKey")}</label>
         <input type="password" id="field-apiKey" class="bt-input api-key-input" value="${config.apiKey || ''}" />
       </div>
       <div class="bt-field">
-        <label>Model</label>
+        <label>${i18n.t("popup.model")}</label>
         <input type="text" id="field-model" class="bt-input" value="${model}" placeholder="google/gemini-2.0-flash-exp:free" />
       </div>
     `);
   } else if (type === "deepl") {
     formDynamicFields.insertAdjacentHTML('beforeend', `
       <div class="bt-field">
-        <label>API Key</label>
+        <label>${i18n.t("popup.apiKey")}</label>
         <input type="password" id="field-apiKey" class="bt-input api-key-input" value="${config.apiKey || ''}" />
       </div>
     `);
@@ -321,7 +321,7 @@ function renderFormFields(type, config = {}) {
 
 function openProviderForm(provider = null) {
   editingProviderId = provider ? provider.id : null;
-  formTitle.textContent = provider ? "Edit Provider" : "Add Provider";
+  formTitle.textContent = provider ? i18n.t("popup.edit") : i18n.t("popup.addProvider");
   formType.value = provider ? provider.type : "gemini";
   formType.disabled = !!provider; // Cannot change type when editing
   formName.value = provider ? provider.name : "";
@@ -532,6 +532,9 @@ langToggle.addEventListener("click", (e) => {
     i18n.setLanguage(lang);
     translateUI();
     populateSelects();
+    renderAliases();
+    renderDomains();
+    renderProviderList();
     updateLangToggleUI(lang);
     saveSettings();
   }

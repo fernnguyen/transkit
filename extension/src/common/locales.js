@@ -16,7 +16,7 @@ export const locales = {
     "popup.activeDomains": "Active Domains",
     "popup.domainPlaceholder": "example.com",
     "popup.savePreferences": "Save preferences",
-    "popup.saved": "✅ Saved",
+    "popup.saved": "Saved",
     "popup.hint": "Type your text then add: <code>!![code]</code> or <code>!!t</code>.<br /><b>Example:</b> <code>Hello world !!es</code> or <code>!!t</code>",
     "popup.aiWarning": "Requires Chrome desktop with AI APIs enabled; the model will download on first use if needed.",
     "popup.tabGeneral": "General",

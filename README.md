@@ -2,6 +2,9 @@
 
 **TransKit** is a Chrome extension that brings instant, AI-powered translation directly to your input fields. No more switching tabs or copy-pasting—just type, command, and translate.
 
+![TransKit Popup](landing/screenshot/popup.png)
+
+
 ## Features
 
 - **Instant Translation**: Type `!!<lang>` or `!!t` after your text to translate instantly
@@ -50,6 +53,9 @@ Quick translate to default target: !!t
 
 Enable in settings for automatic translation on specific domains (Telegram, Discord, ChatGPT, etc.):
 
+![Instant Translation](landing/screenshot/instant.png)
+
+
 1. Open extension popup
 2. Enable "Instant Translate for specific domains"
 3. Configure delay (default: 3 seconds)
@@ -73,6 +79,12 @@ Enable in settings for automatic translation on specific domains (Telegram, Disc
 ## Configuration
 
 Open the extension popup to customize:
+
+<p align="center">
+  <img src="landing/screenshot/setting_general.png" width="45%" />
+  <img src="landing/screenshot/setting_provider.png" width="45%" />
+</p>
+
 
 - **Enable/Disable Extension**: Toggle the extension on/off
 - **Native Language**: Your primary language
