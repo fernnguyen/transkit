@@ -308,7 +308,7 @@
 
 .bt-selection-provider-tag {
   background: var(--bt-color-primary-background);
-  color: var(--bt-color-primary);
+  color: var(--bt-color-white);
   font-size: 0.75rem;
   font-weight: 600;
   padding: 2px 6px;
