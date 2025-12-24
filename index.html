@@ -1,54 +1,466 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TransKit – Power Inline Translate Kit</title>
-    <meta name="description" content="Translate inline, domain-aware, offline-first. No tracking. Open source.">
+    <title>TransKit – Translate Anywhere, Instantly</title>
+    <meta name="description" content="A powerful translation extension for Chrome. Translate inline while typing, select text to translate, or auto-translate on specific sites. Privacy-first, offline-capable, and open source.">
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <header>
-        <nav>
-            <div class="logo">TransKit</div>
-            <div class="links">
-                <a href="https://github.com/fernnguyen/transkit" target="_blank">GitHub</a>
-                <a href="#" class="btn-primary">Cài đặt ngay</a>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="container nav-content">
+            <div class="nav-brand">
+                <img src="logo-48.png" alt="TransKit Logo" class="nav-logo">
+                <span class="nav-title">TransKit</span>
             </div>
-        </nav>
-    </header>
+            <div class="nav-links">
+                <a href="#features" class="nav-link">Features</a>
+                <a href="#how-it-works" class="nav-link">How It Works</a>
+                <a href="#try-it" class="nav-link">Try It</a>
+                <a href="#download" class="nav-link">Download</a>
+                <a href="https://github.com/fernnguyen/transkit" target="_blank" class="nav-link">GitHub</a>
+                <a href="#download" class="btn-nav">Get Started</a>
+            </div>
+            <button class="mobile-menu-toggle" aria-label="Toggle menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
 
-    <main>
-        <section class="hero">
-            <h1>Dịch thuật thông minh ngay tại <span class="gradient-text">ô nhập liệu</span></h1>
-            <p class="subtitle">TransKit giúp bạn dịch văn bản trực tiếp khi đang gõ, hỗ trợ nhiều AI provider, bảo mật và hoàn toàn mã nguồn mở.</p>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-badge">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 0L10.4 5.6L16 8L10.4 10.4L8 16L5.6 10.4L0 8L5.6 5.6L8 0Z" fill="currentColor"/>
+                </svg>
+                Open Source · Privacy-First · Offline-Capable
+            </div>
+            <h1 class="hero-title">
+                Translate Anywhere,<br>
+                <span class="gradient-text">Instantly</span>
+            </h1>
+            <p class="hero-subtitle">
+                The smartest way to translate while browsing. Type commands, select text, or auto-translate on your favorite sites.
+                <strong>No tracking. No data collection.</strong> Just pure translation power.
+            </p>
             <div class="hero-actions">
-                <a href="#" class="btn-large">Thêm vào Chrome</a>
-                <a href="https://github.com/fernnguyen/transkit" class="btn-secondary">Xem trên GitHub</a>
+                <a href="#download" class="btn-primary btn-large">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                    </svg>
+                    Add to Chrome – It's Free
+                </a>
+                <a href="https://github.com/fernnguyen/transkit" target="_blank" class="btn-secondary btn-large">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                    View on GitHub
+                </a>
             </div>
-        </section>
+            <div class="hero-stats">
+                <div class="stat-item">
+                    <div class="stat-number">5</div>
+                    <div class="stat-label">AI Providers</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">17+</div>
+                    <div class="stat-label">Languages</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">3</div>
+                    <div class="stat-label">Translation Modes</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">100%</div>
+                    <div class="stat-label">Open Source</div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-        <section class="features">
-            <div class="feature-card">
-                <h3>Inline Translation</h3>
-                <p>Dịch ngay tại chỗ mà không cần chuyển tab hay mở popup.</p>
+    <!-- Translation Modes Section -->
+    <section class="modes-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Three Powerful Ways to Translate</h2>
+                <p class="section-subtitle">Choose the method that fits your workflow</p>
             </div>
-            <div class="feature-card">
-                <h3>AI Powered</h3>
-                <p>Hỗ trợ OpenAI, Gemini, Claude và các mô hình local.</p>
-            </div>
-            <div class="feature-card">
-                <h3>Privacy First</h3>
-                <p>Không theo dõi, không thu thập dữ liệu người dùng.</p>
-            </div>
-        </section>
-    </main>
+            <div class="modes-grid">
+                <div class="mode-card">
+                    <div class="mode-icon">⌨️</div>
+                    <h3 class="mode-title">Command Translation</h3>
+                    <p class="mode-description">Type <code>!!en</code>, <code>!!vi</code>, or any language code while typing. Press Tab to accept the translation instantly.</p>
+                    <div class="mode-demo">
+                        <div class="demo-input">Hello world <span class="demo-command">!!vi</span></div>
+                        <div class="demo-arrow">↓</div>
+                        <div class="demo-output">Xin chào thế giới</div>
+                    </div>
+                    <ul class="mode-features">
+                        <li>Custom language aliases (e.g., <code>e</code> for English)</li>
+                        <li>600ms debounce for smooth typing</li>
+                        <li>Works in any text field</li>
+                    </ul>
+                </div>
 
-    <footer>
-        <p>&copy; 2025 TransKit. Phát triển bởi <a href="https://github.com/fernnguyen">@FernNguyen</a>.</p>
+                <div class="mode-card featured">
+                    <div class="featured-badge">Most Popular</div>
+                    <div class="mode-icon">⚡</div>
+                    <h3 class="mode-title">Instant Translate</h3>
+                    <p class="mode-description">Auto-translate as you type on specific sites like Telegram, Discord, or ChatGPT. Domain-aware with configurable delays.</p>
+                    <div class="mode-demo screenshot-container">
+                        <img src="screenshot/instant.png" alt="Instant Translation Demo" class="screenshot">
+                    </div>
+                    <ul class="mode-features">
+                        <li>Configure delay (1-10 seconds)</li>
+                        <li>Choose suggestion position (top/bottom)</li>
+                        <li>Enable only on specific domains</li>
+                    </ul>
+                </div>
+
+                <div class="mode-card">
+                    <div class="mode-icon">✨</div>
+                    <h3 class="mode-title">Select to Translate</h3>
+                    <p class="mode-description">Highlight any text on any webpage and click the translation icon. Perfect for reading foreign content.</p>
+                    <div class="mode-demo screenshot-container">
+                        <img src="screenshot/popup.png" alt="Select to Translate Demo" class="screenshot">
+                    </div>
+                    <ul class="mode-features">
+                        <li>Auto-detect source language</li>
+                        <li>Dual language selectors</li>
+                        <li>One-click copy to clipboard</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Key Features Section -->
+    <section id="features" class="features-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Why Choose TransKit?</h2>
+                <p class="section-subtitle">Built for privacy, powered by AI, designed for simplicity</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Privacy-First Design</h3>
+                    <p class="feature-description">Default to Chrome's built-in Gemini Nano AI for offline translation. No tracking, no data collection, no external API calls required.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 6v6l4 2"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Offline-Capable</h3>
+                    <p class="feature-description">Works without internet when using Chrome's native AI. Perfect for secure environments or when traveling.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                            <line x1="4" y1="22" x2="4" y2="15"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">5 AI Providers</h3>
+                    <p class="feature-description">Choose from Chrome Built-in AI, Google Gemini, OpenAI, DeepL, or OpenRouter. Switch providers mid-translation without reloading.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">17+ Languages</h3>
+                    <p class="feature-description">Support for English, Vietnamese, Chinese, Japanese, Korean, Spanish, French, German, Portuguese, Italian, Russian, Arabic, and more.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="16 18 22 12 16 6"/>
+                            <polyline points="8 6 2 12 8 18"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">100% Open Source</h3>
+                    <p class="feature-description">Fully transparent code on GitHub. Review, contribute, or fork the project. Built by the community, for the community.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2v6m0 4v10M6 8l6 6-6 6"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Smart Auto-Detection</h3>
+                    <p class="feature-description">Automatically detects the source language when not specified. Intelligent language mapping with multi-language synonyms.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section id="how-it-works" class="how-it-works-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">How It Works</h2>
+                <p class="section-subtitle">Simple setup, powerful results</p>
+            </div>
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <h3 class="step-title">Install Extension</h3>
+                    <p class="step-description">Add TransKit to your Chrome browser with one click. No account required.</p>
+                </div>
+                <div class="step-arrow">→</div>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <h3 class="step-title">Choose Your Provider</h3>
+                    <p class="step-description">Start with Chrome's built-in AI for instant offline translation, or configure your preferred AI provider.</p>
+                </div>
+                <div class="step-arrow">→</div>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <h3 class="step-title">Start Translating</h3>
+                    <p class="step-description">Type commands, select text, or enable auto-translate on your favorite sites. It just works.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Try It Section -->
+    <section id="try-it" class="try-it-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Test It Here</h2>
+                <p class="section-subtitle">After installing, come back and try TransKit right here</p>
+            </div>
+            <div class="try-it-container">
+                <div class="try-it-card">
+                    <div class="try-it-header">
+                        <div class="try-it-label">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 0.5rem;">
+                                <path d="M9 11l3 3L22 4"/>
+                                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                            </svg>
+                            Test Area
+                        </div>
+                        <div class="try-it-badge">After Installation</div>
+                    </div>
+                    <div class="try-it-input-wrapper">
+                        <textarea class="try-it-input" placeholder="Install TransKit first, then type here and use !!vi or !!en to translate..."></textarea>
+                    </div>
+                    <div class="try-it-instructions">
+                        <div class="instruction-item">
+                            <span class="instruction-number">1</span>
+                            <span>Install the TransKit extension from the Download section above</span>
+                        </div>
+                        <div class="instruction-item">
+                            <span class="instruction-number">2</span>
+                            <span>Come back to this page and type any text in this field</span>
+                        </div>
+                        <div class="instruction-item">
+                            <span class="instruction-number">3</span>
+                            <span>Add <code>!!vi</code>, <code>!!en</code>, or any language code to see instant translation!</span>
+                        </div>
+                        <div class="instruction-item">
+                            <span class="instruction-number">4</span>
+                            <span>Press <kbd>Tab</kbd> to accept the translation</span>
+                        </div>
+                    </div>
+                    <div class="try-it-note">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="16" x2="12" y2="12"/>
+                            <line x1="12" y1="8" x2="12.01" y2="8"/>
+                        </svg>
+                        <span>This is a real test field - the extension will work here just like any other input on the web!</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download Section -->
+    <section id="download" class="download-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Get Started Today</h2>
+                <p class="section-subtitle">Available now on Chrome, coming soon to more platforms</p>
+            </div>
+
+            <div class="download-compact">
+                <a href="#" class="download-primary-card">
+                    <div class="download-primary-icon chrome">
+                        <img src="https://1000logos.net/wp-content/uploads/2017/08/Chrome-Logo-1536x864.png" alt="Chrome Logo">
+                    </div>
+                    <div class="download-primary-info">
+                        <h3 class="download-primary-title">Google Chrome</h3>
+                        <p class="download-primary-status">Available Now</p>
+                        <p class="download-primary-desc">Chrome 131+ with built-in AI support</p>
+                    </div>
+                    <div class="download-primary-button">
+                        Install Extension
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    </div>
+                </a>
+
+                <div class="download-coming-grid">
+                    <div class="download-mini-card">
+                        <div class="download-mini-icon firefox">
+                            <img src="https://1000logos.net/wp-content/uploads/2021/05/Mozilla-Firefox-logo-1536x864.png" alt="Firefox Logo">
+                        </div>
+                        <div class="download-mini-info">
+                            <h4>Firefox</h4>
+                            <p>Coming Soon</p>
+                        </div>
+                    </div>
+
+                    <div class="download-mini-card">
+                        <div class="download-mini-icon macos">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+                            </svg>
+                        </div>
+                        <div class="download-mini-info">
+                            <h4>macOS App</h4>
+                            <p>Coming Soon</p>
+                        </div>
+                    </div>
+
+                    <div class="download-mini-card">
+                        <div class="download-mini-icon windows">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M0,3.41,9.41,2.18V11.59H0ZM10.59,2,24,0V11.59H10.59ZM0,12.41H9.41v9.41L0,20.59Zm10.59,0H24V24l-13.41-2Z"/>
+                            </svg>
+                        </div>
+                        <div class="download-mini-info">
+                            <h4>Windows App</h4>
+                            <p>Coming Soon</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="container">
+            <div class="cta-content">
+                <h2 class="cta-title">Ready to Transform Your Translation Experience?</h2>
+                <p class="cta-subtitle">Join developers, students, and professionals who trust TransKit for private, powerful translation.</p>
+                <div class="cta-actions">
+                    <a href="#download" class="btn-primary btn-large">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                        </svg>
+                        Get Started for Free
+                    </a>
+                    <a href="https://github.com/fernnguyen/transkit" target="_blank" class="btn-secondary btn-large">
+                        Star on GitHub
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <img src="logo-48.png" alt="TransKit Logo" class="footer-logo">
+                    <span class="footer-title">TransKit</span>
+                    <p class="footer-description">Translate anywhere, instantly.<br>Privacy-first. Open source.</p>
+                </div>
+                <div class="footer-links">
+                    <div class="footer-column">
+                        <h4 class="footer-heading">Product</h4>
+                        <a href="#features" class="footer-link">Features</a>
+                        <a href="#how-it-works" class="footer-link">How It Works</a>
+                        <a href="#download" class="footer-link">Download</a>
+                    </div>
+                    <div class="footer-column">
+                        <h4 class="footer-heading">Resources</h4>
+                        <a href="https://github.com/fernnguyen/transkit" target="_blank" class="footer-link">Documentation</a>
+                        <a href="https://github.com/fernnguyen/transkit/issues" target="_blank" class="footer-link">Support</a>
+                        <a href="https://github.com/fernnguyen/transkit/blob/main/CONTRIBUTING.md" target="_blank" class="footer-link">Contributing</a>
+                    </div>
+                    <div class="footer-column">
+                        <h4 class="footer-heading">Community</h4>
+                        <a href="https://github.com/fernnguyen/transkit" target="_blank" class="footer-link">GitHub</a>
+                        <a href="https://github.com/fernnguyen/transkit/discussions" target="_blank" class="footer-link">Discussions</a>
+                        <a href="https://github.com/fernnguyen/transkit/issues" target="_blank" class="footer-link">Report Bug</a>
+                    </div>
+                    <div class="footer-column">
+                        <h4 class="footer-heading">Legal</h4>
+                        <a href="privacy.html" class="footer-link">Privacy Policy</a>
+                        <a href="https://github.com/fernnguyen/transkit/blob/main/LICENSE" target="_blank" class="footer-link">MIT License</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p class="footer-copyright">&copy; 2025 TransKit. Built with ❤️ by <a href="https://github.com/fernnguyen" target="_blank" class="footer-author">@FernNguyen</a></p>
+                <div class="footer-legal">
+                    <a href="https://github.com/fernnguyen/transkit/blob/main/LICENSE" target="_blank" class="footer-link">MIT License</a>
+                </div>
+            </div>
+        </div>
     </footer>
+
+    <script>
+        // Mobile menu toggle
+        const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+        const navLinks = document.querySelector('.nav-links');
+
+        mobileMenuToggle.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+            mobileMenuToggle.classList.toggle('active');
+        });
+
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    navLinks.classList.remove('active');
+                    mobileMenuToggle.classList.remove('active');
+                }
+            });
+        });
+
+        // Add scroll effect to nav
+        const nav = document.querySelector('.nav');
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 100) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+    </script>
 </body>
 </html>
