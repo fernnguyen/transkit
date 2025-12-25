@@ -37,7 +37,9 @@
       <!-- Tabs Navigation -->
       <div class="bt-tabs">
         <div class="bt-tab active" data-tab="general" data-i18n="popup.tabGeneral">General</div>
+        <div class="bt-tab" data-tab="instant" data-i18n="popup.tabInstant">Instant</div>
         <div class="bt-tab" data-tab="ai-provider" data-i18n="popup.tabAIProvider">AI Provider</div>
+        <div class="bt-tab" data-tab="help" data-i18n="popup.tabHelp">Help</div>
       </div>
 
       <div id="settings-container" class="bt-settings-container">
@@ -81,9 +83,10 @@
             </div>
             <div id="alias-list" class="bt-alias-list"></div>
           </div>
+        </div>
 
-          <div class="bt-divider"></div>
-
+        <!-- Instant Tab Content -->
+        <div id="tab-instant" class="bt-tab-content">
           <div class="bt-field-row">
             <input type="checkbox" id="instant-translate-enabled" />
             <label for="instant-translate-enabled" data-i18n="popup.enableInstant">Enable Instant Translate for specific domains</label>
@@ -138,28 +141,49 @@
             <div id="form-dynamic-fields"></div>
 
             <div class="bt-actions bt-row">
-              <button id="form-cancel" class="bt-button bt-button-secondary" data-i18n="dialog.cancel">Cancel</button>
+              <button id="form-cancel" class="bt-button bt-button-outline" data-i18n="dialog.cancel">Cancel</button>
               <button id="form-save" class="bt-button" data-i18n="popup.save">Save</button>
             </div>
+          </div>
+        </div>
+
+        <!-- Help Tab Content -->
+        <div id="tab-help" class="bt-tab-content">
+          <div class="bt-help-section">
+            <h3 data-i18n="help.title">How to use TransKit</h3>
+            
+            <div class="bt-help-item">
+              <h4 data-i18n="help.commands.title">Command Translation</h4>
+              <p data-i18n="help.commands.desc">Type your text followed by a command to translate instantly.</p>
+              <p class="bt-code-example" data-i18n="help.commands.example">Example: <code>Hello !!vi</code> → <code>Xin chào</code></p>
+              <p data-i18n="help.commands.default">Use <code>!!t</code> for your default target language.</p>
+            </div>
+
+            <div class="bt-help-item">
+              <h4 data-i18n="help.selection.title">Select to Translate</h4>
+              <p data-i18n="help.selection.desc">Highlight any text on a page and click the TransKit icon that appears.</p>
+            </div>
+
+            <div class="bt-help-item">
+              <h4 data-i18n="help.instant.title">Instant Mode</h4>
+              <p data-i18n="help.instant.desc">On enabled domains, just type and wait. A suggestion will appear.</p>
+              <p data-i18n="help.instant.apply">Press <kbd>Tab</kbd> to apply or <kbd>Esc</kbd> to dismiss.</p>
+            </div>
+
+            <div class="bt-divider"></div>
+            
+            <p class="bt-ai-warning">
+              <em data-i18n="popup.aiWarning">
+                Requires Chrome desktop with AI APIs enabled; the model will download
+                on first use if needed.
+              </em>
+            </p>
           </div>
         </div>
 
         <div class="bt-actions">
           <button id="save" class="bt-button" data-i18n="popup.savePreferences">Save preferences</button>
         </div>
-
-        <p class="bt-hint" data-i18n="popup.hint">
-          Type your text then add: <code>!![code]</code> or <code>!!t</code>.
-          <br />
-          <b>Example:</b> <code>Hello world !!es</code> or <code>!!t</code>
-        </p>
-
-        <p>
-          <em data-i18n="popup.aiWarning">
-            Requires Chrome desktop with AI APIs enabled; the model will download
-            on first use if needed.
-          </em>
-        </p>
       </div>
     </div>
 

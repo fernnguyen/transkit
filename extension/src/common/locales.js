@@ -20,7 +20,9 @@ export const locales = {
     "popup.hint": "Type your text then add: <code>!![code]</code> or <code>!!t</code>.<br /><b>Example:</b> <code>Hello world !!es</code> or <code>!!t</code>",
     "popup.aiWarning": "Requires Chrome desktop with AI APIs enabled; the model will download on first use if needed.",
     "popup.tabGeneral": "General",
+    "popup.tabInstant": "Instant",
     "popup.tabAIProvider": "AI Provider",
+    "popup.tabHelp": "Help",
     "popup.addProvider": "+ Add Provider",
     "popup.providerType": "Provider Type",
     "popup.providerName": "Name",
@@ -38,6 +40,18 @@ export const locales = {
     "popup.model": "Model",
     "popup.baseUrl": "Base URL (Optional)",
     "popup.deeplHint": "Supports Free and Pro API keys.",
+    
+    // Help
+    "help.title": "How to use TransKit",
+    "help.commands.title": "Command Translation",
+    "help.commands.desc": "Type your text followed by a command to translate instantly.",
+    "help.commands.example": "Example: <code>Hello !!vi</code> → <code>Xin chào</code>",
+    "help.commands.default": "Use <code>!!t</code> for your default target language.",
+    "help.selection.title": "Select to Translate",
+    "help.selection.desc": "Highlight any text on a page and click the TransKit icon that appears.",
+    "help.instant.title": "Instant Mode",
+    "help.instant.desc": "On enabled domains, just type and wait. A suggestion will appear.",
+    "help.instant.apply": "Press <kbd>Tab</kbd> to apply or <kbd>Esc</kbd> to dismiss.",
     
     // Dialogs & Toasts
     "dialog.confirmTitle": "Confirm Translation",
@@ -95,7 +109,7 @@ export const locales = {
     "popup.aliases": "Phím tắt",
     "popup.aliasKeyPlaceholder": "Phím (vd: e)",
     "popup.aliasValuePlaceholder": "Mã (vd: en)",
-    "popup.enableInstant": "Bật dịch tức thì cho các tên miền cụ thể",
+    "popup.enableInstant": "Bật dịch nhanh cho các tên miền cụ thể",
     "popup.instantDelay": "Độ trễ (giây)",
     "popup.activeDomains": "Danh sách tên miền áp dụng",
     "popup.domainPlaceholder": "example.com",
@@ -104,7 +118,9 @@ export const locales = {
     "popup.hint": "Nhập văn bản rồi thêm: <code>!![mã]</code> hoặc <code>!!t</code>.<br /><b>Ví dụ:</b> <code>Hello world !!vi</code> hoặc <code>!!t</code>",
     "popup.aiWarning": "Yêu cầu Chrome desktop đã bật API AI; mô hình sẽ được tải xuống trong lần sử dụng đầu tiên nếu cần.",
     "popup.tabGeneral": "Chung",
+    "popup.tabInstant": "Dịch nhanh",
     "popup.tabAIProvider": "Nhà cung cấp AI",
+    "popup.tabHelp": "Trợ giúp",
     "popup.addProvider": "+ Thêm nhà cung cấp",
     "popup.providerType": "Loại nhà cung cấp",
     "popup.providerName": "Tên",
@@ -122,6 +138,18 @@ export const locales = {
     "popup.model": "Mô hình",
     "popup.baseUrl": "Base URL (Tùy chọn)",
     "popup.deeplHint": "Hỗ trợ cả khóa API miễn phí và trả phí.",
+    
+    // Help
+    "help.title": "Hướng dẫn sử dụng TransKit",
+    "help.commands.title": "Dịch bằng lệnh",
+    "help.commands.desc": "Nhập văn bản kèm theo lệnh để dịch ngay lập tức.",
+    "help.commands.example": "Ví dụ: <code>Hello !!vi</code> → <code>Xin chào</code>",
+    "help.commands.default": "Dùng <code>!!t</code> để dịch sang ngôn ngữ mặc định.",
+    "help.selection.title": "Chọn để dịch",
+    "help.selection.desc": "Bôi đen văn bản trên trang và nhấn vào biểu tượng TransKit hiện ra.",
+    "help.instant.title": "Chế độ dịch nhanh",
+    "help.instant.desc": "Trên các trang web đã bật, chỉ cần gõ và đợi gợi ý hiện ra.",
+    "help.instant.apply": "Nhấn <kbd>Tab</kbd> để áp dụng hoặc <kbd>Esc</kbd> để đóng.",
     
     // Dialogs & Toasts
     "dialog.confirmTitle": "Xác nhận dịch",

@@ -648,6 +648,50 @@ input:checked + .slider:before {
   font-family: monospace;
 }
 
+/* Help Section */
+.bt-help-section {
+  display: grid;
+  gap: var(--bt-space-medium);
+}
+
+.bt-help-item {
+  display: grid;
+  gap: var(--bt-space-small);
+  padding: var(--bt-space-medium);
+  background: var(--bt-color-background-hover);
+  border-radius: var(--bt-radius-small);
+}
+
+.bt-help-item h4 {
+  font-size: var(--bt-font-size-medium);
+  font-weight: 600;
+  color: var(--bt-color-primary-background);
+}
+
+.bt-help-item p {
+  font-size: var(--bt-font-size-small);
+  line-height: 1.5;
+}
+
+.bt-code-example {
+  background: var(--bt-color-white);
+  padding: var(--bt-space-small);
+  border-radius: 4px;
+  border: 1px solid var(--bt-color-border-default);
+  font-family: monospace;
+}
+
+.bt-ai-warning {
+  font-size: 11px;
+  color: var(--bt-color-text-muted);
+  text-align: center;
+  padding: var(--bt-space-small);
+}
+
+.bt-ai-warning em {
+  font-size: inherit;
+}
+
 /* Full Page Layout Adjustments */
 @media (min-width: 600px) {
   body {
