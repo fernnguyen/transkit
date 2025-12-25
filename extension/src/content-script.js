@@ -390,9 +390,9 @@ async function handleAutoTranslation(element, parsed) {
 function isInstantDomain(settings) {
   if (!settings.instantTranslateEnabled) return null;
   
-  const hostname = window.location.hostname;
+  const currentUrl = window.location.href;
   return settings.instantDomains.find(
-    d => d.enabled && hostname.includes(d.domain)
+    d => d.enabled && currentUrl.includes(d.domain)
   ) || null;
 }
 
@@ -415,7 +415,7 @@ function setFieldText(element, text) {
   }
 }
 
-function buildInlineSuggestion(element, translatedText, providerInfo, position = 'bottom') {
+function buildInlineSuggestion(element, translatedText, providerInfo, position = 'bottom', settings = {}) {
   const container = document.createElement('div');
   container.className = 'bt-inline-suggestion bt-vars-container';
   
@@ -434,9 +434,6 @@ function buildInlineSuggestion(element, translatedText, providerInfo, position =
   container.style.left = `${rect.left}px`;
   container.style.width = `${rect.width - 80}px`;
   
-  // Extract just the name for the tag if possible, or use the whole string
-  // providerInfo is like "Name (Type)"
-  const modelName = providerInfo ? providerInfo.split('(')[0].trim() : "AI";
   const iconUrl = chrome.runtime.getURL('assets/icons/icon-19.png');
   
   container.innerHTML = `
@@ -445,21 +442,62 @@ function buildInlineSuggestion(element, translatedText, providerInfo, position =
       <span class="bt-suggestion-text">${translatedText}</span>
     </div>
     <div class="bt-suggestion-footer">
-      <span class="bt-model-tag">${modelName}</span>
+      <div class="bt-suggestion-provider-container"></div>
       <span class="bt-suggestion-hint">${i18n.t("suggestion.hint")}</span>
     </div>
   `;
   
+  const providerContainer = container.querySelector('.bt-suggestion-provider-container');
+  const providerSelect = populateProviderSelectorForSuggestion(providerContainer, settings);
+
   document.body.appendChild(container);
   
   return {
     element: container,
     translatedText,
+    providerSelect,
     destroy: () => {
       container.remove();
     }
   };
 }
+
+function populateProviderSelectorForSuggestion(container, settings) {
+  const providers = settings.providers || [];
+  const activeId = settings.activeProviderId || 'builtin';
+
+  if (providers.length <= 1) {
+    // Show as a label tag
+    const provider = providers[0] || { name: 'Chrome Built-in AI' };
+    const tag = document.createElement('span');
+    tag.className = 'bt-model-tag';
+    tag.textContent = provider.name;
+    container.appendChild(tag);
+    return null;
+  } else {
+    // Show as a select dropdown
+    const label = document.createElement('span');
+    label.className = 'bt-suggestion-provider-label';
+    label.textContent = 'Model: ';
+    
+    const select = document.createElement('select');
+    select.className = 'bt-suggestion-provider-select';
+    
+    providers.forEach(p => {
+      const option = document.createElement('option');
+      option.value = p.id;
+      option.textContent = p.name;
+      if (p.id === activeId) option.selected = true;
+      select.appendChild(option);
+    });
+    
+    container.appendChild(label);
+    container.appendChild(select);
+    
+    return select;
+  }
+}
+
 
 function setupSuggestionKeyHandlers(element, suggestion) {
   // CRITICAL: Remove any existing handler first
@@ -486,6 +524,9 @@ function setupSuggestionKeyHandlers(element, suggestion) {
       setFieldText(element, suggestion.translatedText);
       suggestion.destroy();
       currentSuggestion = null;
+      
+      // Ensure focus stays on the element
+      element.focus();
       
       // Clear flag after a short delay
       setTimeout(() => {
@@ -576,14 +617,56 @@ async function handleInstantTranslate(element) {
       if (res?.ok && res.result?.translation) {
         const position = domainConfig.position || 'bottom';
         const providerInfo = `${res.result.providerName || 'AI'} (${res.result.providerType || 'Bot'})`;
-        currentSuggestion = buildInlineSuggestion(element, res.result.translation, providerInfo, position);
+        currentSuggestion = buildInlineSuggestion(element, res.result.translation, providerInfo, position, settings);
         setupSuggestionKeyHandlers(element, currentSuggestion);
+
+        // Handle provider change
+        if (currentSuggestion.providerSelect) {
+          currentSuggestion.providerSelect.addEventListener('change', (e) => {
+            reTranslateSuggestion(element, text, e.target.value, settings);
+          });
+        }
       }
     } catch (err) {
       console.error("Instant translate error:", err);
     }
   }, settings.instantDelay || 3000);
 }
+
+async function reTranslateSuggestion(element, text, providerId, settings) {
+  if (!currentSuggestion) return;
+  
+  const textEl = currentSuggestion.element.querySelector('.bt-suggestion-text');
+  if (textEl) {
+    textEl.textContent = i18n.t("dialog.translating");
+    textEl.classList.add('bt-loading-text');
+  }
+  
+  try {
+    const res = await requestTranslation({
+      text: text,
+      nativeLanguageCode: settings.nativeLanguageCode || "en",
+      targetLanguage: settings.targetLanguageCode || "es",
+      preferNativeAsSource: settings.preferNativeAsSource !== false,
+      providerId: providerId
+    });
+    
+    if (res?.ok && res.result?.translation) {
+      if (textEl) {
+        textEl.textContent = res.result.translation;
+        textEl.classList.remove('bt-loading-text');
+      }
+      currentSuggestion.translatedText = res.result.translation;
+    }
+  } catch (err) {
+    console.error("Re-translation error:", err);
+    if (textEl) {
+      textEl.textContent = "Error: " + err.message;
+      textEl.classList.remove('bt-loading-text');
+    }
+  }
+}
+
 
 function registerInstantMode() {
   // Listen for input changes
@@ -600,6 +683,25 @@ function registerInstantMode() {
     
     handleInstantTranslate(element);
   }, true);
+
+  // Handle click outside to close suggestion
+  document.addEventListener('mousedown', (e) => {
+    if (currentSuggestion) {
+      const isInsideInput = e.target === getActiveEditableElement();
+      const isInsideSuggestion = currentSuggestion.element.contains(e.target);
+      
+      if (!isInsideInput && !isInsideSuggestion) {
+        // Cleanup key handler if it exists
+        if (currentKeyHandler) {
+          document.removeEventListener("keydown", currentKeyHandler, true);
+          currentKeyHandler = null;
+        }
+        
+        currentSuggestion.destroy();
+        currentSuggestion = null;
+      }
+    }
+  });
   
   // Listen for Enter key to cancel instant translate
   document.addEventListener('keydown', (e) => {

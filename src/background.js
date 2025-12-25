@@ -100,7 +100,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       try {
         const result = await aiService.translate(text, sourceLang, targetLang, providerId);
         
-        // If result is the special signal for Window AI, use offscreen
+        // If result is the special signal for Chrome Built-in AI, use offscreen
         if (result?.useOffscreen) {
           await ensureOffscreen();
           const offscreenResult = await chrome.runtime.sendMessage({ 

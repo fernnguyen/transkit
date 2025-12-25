@@ -12,7 +12,7 @@ class TranslationProvider {
 }
 
 /**
- * Window AI Provider (Chrome Built-in)
+ * Chrome Built-in AI Provider
  */
 class WindowAIProvider extends TranslationProvider {
   async translate(text, sourceLang, targetLang) {
