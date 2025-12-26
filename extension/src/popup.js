@@ -121,12 +121,14 @@ function renderDomains() {
   currentDomains.forEach((item, index) => {
     const div = document.createElement("div");
     div.className = "bt-domain-item";
+    const position = item.position || 'auto'; // Default to 'auto'
     div.innerHTML = `
       <input type="checkbox" ${item.enabled ? 'checked' : ''} data-index="${index}" />
       <span class="bt-domain-name">${item.domain}</span>
       <select class="bt-position-select" data-index="${index}">
-        <option value="bottom" ${item.position === 'bottom' ? 'selected' : ''}>Bottom</option>
-        <option value="top" ${item.position === 'top' ? 'selected' : ''}>Top</option>
+        <option value="auto" ${position === 'auto' ? 'selected' : ''}>Auto</option>
+        <option value="bottom" ${position === 'bottom' ? 'selected' : ''}>Bottom</option>
+        <option value="top" ${position === 'top' ? 'selected' : ''}>Top</option>
       </select>
       <button class="bt-remove-alias" data-index="${index}">×</button>
     `;
@@ -565,7 +567,7 @@ if (addDomainBtn && newDomainInput) {
   addDomainBtn.addEventListener("click", () => {
     const domain = newDomainInput.value.trim();
     if (domain && !currentDomains.some(d => d.domain === domain)) {
-      currentDomains.push({ domain, enabled: true, position: 'bottom' });
+      currentDomains.push({ domain, enabled: true, position: 'auto' });
       newDomainInput.value = "";
       renderDomains();
       saveSettings();

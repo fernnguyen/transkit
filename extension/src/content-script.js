@@ -118,27 +118,6 @@ function parseFieldTextAndCommand(element) {
   return { text: precedingText, languageRaw };
 }
 
-function setFieldText(element, newText) {
-  const tag = element.tagName?.toLowerCase();
-
-  if (tag === "input" || tag === "textarea") {
-    element.value = newText;
-    element.dispatchEvent(new Event("input", { bubbles: true }));
-    return;
-  }
-
-  if (element.isContentEditable) {
-    element.textContent = newText;
-    const range = document.createRange();
-    range.selectNodeContents(element);
-    range.collapse(false);
-    const selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
-    return;
-  }
-}
-
 function createOverlayShadowHost() {
   const host = document.createElement("div");
   host.style.all = "initial";
@@ -346,9 +325,9 @@ async function handleAutoTranslation(element, parsed) {
 
     const translation = res.result.translation;
     const providerInfo = `${res.result.providerName || 'AI'} (${res.result.providerType || 'Bot'})`;
-    
-    // Use buildInlineSuggestion instead of buildDialog
-    suggestion = buildInlineSuggestion(element, translation, providerInfo, 'bottom');
+
+    // Use buildInlineSuggestion with auto positioning
+    suggestion = buildInlineSuggestion(element, translation, providerInfo, 'auto');
     
     // Setup Tab/Esc handlers
     const handleKeydown = (ev) => {
@@ -404,35 +383,140 @@ function shouldTriggerInstant(text) {
   return true;
 }
 
-function setFieldText(element, text) {
+function setFieldText(element, text, options = {}) {
+  const { immediate = false } = options;
   const tag = element.tagName?.toLowerCase();
-  
+
+  // Ensure element has focus first
+  if (document.activeElement !== element) {
+    element.focus();
+  }
+
   if (tag === "input" || tag === "textarea") {
-    element.value = text;
+    // Use native setter to bypass React's value tracking
+    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+      tag === "input" ? window.HTMLInputElement.prototype : window.HTMLTextAreaElement.prototype,
+      "value"
+    )?.set;
+
+    if (nativeInputValueSetter) {
+      nativeInputValueSetter.call(element, text);
+    } else {
+      element.value = text;
+    }
+
+    // Trigger React's onChange by dispatching input event
     element.dispatchEvent(new Event("input", { bubbles: true }));
+    element.dispatchEvent(new Event("change", { bubbles: true }));
   } else if (element.isContentEditable) {
-    element.textContent = text;
+    const performInsertion = () => {
+      // Ensure focus again
+      if (document.activeElement !== element) {
+        element.focus();
+      }
+
+      try {
+        // SOLUTION: Works with Lexical Editor (Facebook's editor framework)
+        // Key: Need 50ms delay after selectAll for Lexical to process selection
+
+        // Step 1: Focus element
+        element.focus();
+
+        // Step 2: Select all content
+        document.execCommand('selectAll', false, null);
+
+        // Step 3: CRITICAL DELAY - Wait for Lexical to process selection
+        setTimeout(() => {
+          // Step 4: Insert text (replaces selection)
+          document.execCommand('insertText', false, text);
+
+          // Step 5: Dispatch input event for React/Lexical
+          element.dispatchEvent(new InputEvent('input', { bubbles: true }));
+        }, 50);
+
+      } catch (e) {
+        console.error("[TransKit] Insertion failed", e);
+      }
+    };
+
+    // For instant translate with Tab, execute IMMEDIATELY and SYNCHRONOUSLY
+    // Based on tests: execCommand works but async delays cause Facebook to revert
+    if (immediate) {
+      performInsertion();
+    } else {
+      setTimeout(performInsertion, 0);
+    }
   }
 }
 
-function buildInlineSuggestion(element, translatedText, providerInfo, position = 'bottom', settings = {}) {
+function buildInlineSuggestion(element, translatedText, providerInfo, position = 'auto', settings = {}) {
   const container = document.createElement('div');
   container.className = 'bt-inline-suggestion bt-vars-container';
-  
+
   // Position relative to input
   const rect = element.getBoundingClientRect();
   container.style.position = 'fixed';
   container.style.zIndex = '9999999999';
-  
-  // Set position based on preference
-  if (position === 'top') {
-    container.style.bottom = `${window.innerHeight - rect.top + 4}px`;
-  } else {
-    container.style.top = `${rect.bottom + 4}px`;
+
+  // Smart width calculation to prevent UI breaking on small inputs
+  const minPopupWidth = 320;
+  const maxPopupWidth = 600;
+  const inputWidth = rect.width;
+
+  // Calculate popup width with constraints
+  let popupWidth = Math.max(inputWidth - 80, minPopupWidth);
+  popupWidth = Math.min(popupWidth, maxPopupWidth);
+
+  container.style.width = `${popupWidth}px`;
+  container.style.minWidth = `${minPopupWidth}px`;
+  container.style.maxWidth = `${maxPopupWidth}px`;
+
+  // Smart horizontal positioning
+  let leftPos = rect.left;
+
+  // If popup is wider than input, center it relative to input
+  if (popupWidth > inputWidth) {
+    leftPos = rect.left - (popupWidth - inputWidth) / 2;
+
+    // Keep popup within viewport
+    const maxLeft = window.innerWidth - popupWidth - 10;
+    const minLeft = 10;
+    leftPos = Math.max(minLeft, Math.min(leftPos, maxLeft));
   }
-  
-  container.style.left = `${rect.left}px`;
-  container.style.width = `${rect.width - 80}px`;
+
+  container.style.left = `${leftPos}px`;
+
+  // AUTO-DETECT optimal vertical position
+  let finalPosition = position;
+
+  if (position === 'auto') {
+    // Calculate available space above and below
+    const spaceAbove = rect.top;
+    const spaceBelow = window.innerHeight - rect.bottom;
+
+    // Estimate popup height (will be more accurate after render)
+    const estimatedPopupHeight = 100;
+    const minSpaceNeeded = 120;
+
+    // Prefer bottom if enough space, otherwise use position with more space
+    if (spaceBelow >= minSpaceNeeded) {
+      finalPosition = 'bottom';
+    } else if (spaceAbove >= minSpaceNeeded) {
+      finalPosition = 'top';
+    } else {
+      // Choose side with more space
+      finalPosition = spaceAbove > spaceBelow ? 'top' : 'bottom';
+    }
+  }
+
+  // Set vertical position based on final decision
+  if (finalPosition === 'top') {
+    container.style.bottom = `${window.innerHeight - rect.top + 8}px`;
+    container.classList.add('bt-popup-top');
+  } else {
+    container.style.top = `${rect.bottom + 8}px`;
+    container.classList.add('bt-popup-bottom');
+  }
   
   const iconUrl = chrome.runtime.getURL('assets/icons/icon-19.png');
   
@@ -440,18 +524,31 @@ function buildInlineSuggestion(element, translatedText, providerInfo, position =
     <div class="bt-suggestion-content">
       <img src="${iconUrl}" class="bt-suggestion-icon" alt="TransKit" />
       <span class="bt-suggestion-text">${translatedText}</span>
+      <kbd class="bt-suggestion-tab-hint">Tab</kbd>
     </div>
     <div class="bt-suggestion-footer">
       <div class="bt-suggestion-provider-container"></div>
-      <span class="bt-suggestion-hint">${i18n.t("suggestion.hint")}</span>
     </div>
   `;
+  
+  // Prevent clicking on the suggestion from blurring the input
+  // EXCEPT for select elements (allow clicking model selector)
+  const preventBlur = (e) => {
+    // Allow clicks on select elements
+    if (e.target.tagName === 'SELECT' || e.target.closest('select')) {
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  container.addEventListener('mousedown', preventBlur);
+  container.addEventListener('pointerdown', preventBlur);
   
   const providerContainer = container.querySelector('.bt-suggestion-provider-container');
   const providerSelect = populateProviderSelectorForSuggestion(providerContainer, settings);
 
   document.body.appendChild(container);
-  
+
   return {
     element: container,
     translatedText,
@@ -482,6 +579,7 @@ function populateProviderSelectorForSuggestion(container, settings) {
     
     const select = document.createElement('select');
     select.className = 'bt-suggestion-provider-select';
+    select.tabIndex = -1; // CRITICAL: Prevent Tab key from focusing this element
     
     providers.forEach(p => {
       const option = document.createElement('option');
@@ -502,75 +600,107 @@ function populateProviderSelectorForSuggestion(container, settings) {
 function setupSuggestionKeyHandlers(element, suggestion) {
   // CRITICAL: Remove any existing handler first
   if (currentKeyHandler) {
+    window.removeEventListener("keydown", currentKeyHandler, true);
+    window.removeEventListener("keyup", currentKeyHandler, true);
     document.removeEventListener("keydown", currentKeyHandler, true);
+    document.removeEventListener("keyup", currentKeyHandler, true);
     currentKeyHandler = null;
   }
-  
+
+  let isApplying = false; // Prevent multiple calls
+
   const handleKey = (ev) => {
     // Only handle specific keys, let everything else pass through
     if (ev.key === "Tab") {
+      // CRITICAL: Block ALL propagation immediately and synchronously
       ev.preventDefault();
       ev.stopPropagation();
       ev.stopImmediatePropagation();
-      
-      // IMPORTANT: Cleanup FIRST before applying translation
-      document.removeEventListener("keydown", handleKey, true);
-      currentKeyHandler = null;
-      
-      // Set flag to prevent instant translate from re-triggering
-      justAppliedTranslation = true;
-      
-      // Then apply translation
-      setFieldText(element, suggestion.translatedText);
-      suggestion.destroy();
-      currentSuggestion = null;
-      
-      // Ensure focus stays on the element
-      element.focus();
-      
-      // Clear flag after a short delay
-      setTimeout(() => {
-        justAppliedTranslation = false;
-      }, 500);
-      
-      return;
+
+      // Legacy support
+      if (ev.returnValue !== undefined) {
+        ev.returnValue = false;
+      }
+
+      // Only process on keydown, just block keyup
+      if (ev.type === "keyup") return false;
+
+      // Prevent multiple calls
+      if (isApplying) return false;
+
+      // Apply translation IMMEDIATELY and synchronously
+      applyTranslation();
+      return false;
     }
-    
+
     if (ev.key === "Escape") {
       ev.preventDefault();
       ev.stopPropagation();
       ev.stopImmediatePropagation();
-      
-      // Cleanup
-      document.removeEventListener("keydown", handleKey, true);
-      currentKeyHandler = null;
-      
-      // Dismiss
-      suggestion.destroy();
-      currentSuggestion = null;
-      
-      return;
+
+      if (ev.type === "keyup") return false;
+      dismiss();
+      return false;
     }
-    
+
     if (ev.key === "Backspace" || ev.key === "Delete") {
-      // Cleanup FIRST
-      document.removeEventListener("keydown", handleKey, true);
-      currentKeyHandler = null;
-      
-      // Dismiss suggestion and allow delete to work
-      suggestion.destroy();
-      currentSuggestion = null;
-      
-      // Don't prevent default - let the delete happen
+      if (ev.type === "keyup") return;
+      dismiss();
       return;
     }
-    
-    // All other keys: do nothing, let them pass through completely
   };
-  
-  // Store reference and add listener
+
+  const applyTranslation = () => {
+    // Prevent re-entry
+    if (isApplying) return;
+    isApplying = true;
+
+    // Cleanup FIRST to prevent any interference
+    window.removeEventListener("keydown", handleKey, true);
+    window.removeEventListener("keyup", handleKey, true);
+    document.removeEventListener("keydown", handleKey, true);
+    document.removeEventListener("keyup", handleKey, true);
+    currentKeyHandler = null;
+
+    // Set flag to prevent instant translate from re-triggering
+    justAppliedTranslation = true;
+
+    // Apply translation IMMEDIATELY with Lexical-compatible method
+    setFieldText(element, suggestion.translatedText, { immediate: true });
+
+    // Destroy popup after a tiny delay to ensure insertion completes
+    setTimeout(() => {
+      if (suggestion) {
+        suggestion.destroy();
+      }
+      currentSuggestion = null;
+    }, 50);
+
+    // Clear flag after a short delay
+    setTimeout(() => {
+      justAppliedTranslation = false;
+    }, 500);
+  };
+
+  const dismiss = () => {
+    window.removeEventListener("keydown", handleKey, true);
+    window.removeEventListener("keyup", handleKey, true);
+    document.removeEventListener("keydown", handleKey, true);
+    document.removeEventListener("keyup", handleKey, true);
+    currentKeyHandler = null;
+    suggestion.destroy();
+    currentSuggestion = null;
+  };
+
+  // Store reference and add listeners at MULTIPLE levels with CAPTURE
+  // This ensures we catch the event before Facebook's handlers
   currentKeyHandler = handleKey;
+
+  // Add at both window and document level for maximum coverage
+  window.addEventListener("keydown", handleKey, true);
+  window.addEventListener("keyup", handleKey, true);
   document.addEventListener("keydown", handleKey, true);
+  document.addEventListener("keyup", handleKey, true);
 }
 
 async function handleInstantTranslate(element) {
@@ -615,7 +745,8 @@ async function handleInstantTranslate(element) {
       });
       
       if (res?.ok && res.result?.translation) {
-        const position = domainConfig.position || 'bottom';
+        // Use 'auto' by default for smart positioning
+        const position = domainConfig.position || 'auto';
         const providerInfo = `${res.result.providerName || 'AI'} (${res.result.providerType || 'Bot'})`;
         currentSuggestion = buildInlineSuggestion(element, res.result.translation, providerInfo, position, settings);
         setupSuggestionKeyHandlers(element, currentSuggestion);
