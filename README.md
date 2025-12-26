@@ -9,10 +9,12 @@
 
 - **Instant Translation**: Type `!!<lang>` or `!!t` after your text to translate instantly
 - **Instant Domain Mode**: Auto-translate on specific domains (chat apps, AI assistants) with inline suggestions
+- **Instant Label Indicator**: Visual badge above input fields when instant mode is active
+- **Select-to-Translate**: Highlight text to translate with a draggable, feature-rich popup
 - **Smart Language Detection**: Automatically detects source language
 - **Customizable Aliases**: Create shortcuts for your most-used languages
 - **Non-blocking UI**: Continue working while translations process
-- **Keyboard Shortcuts**: Quick actions with Tab and Esc keys
+- **Keyboard Shortcuts**: Quick actions for translation and domain toggling
 - **Privacy-First**: All processing happens locally using Chrome's built-in AI
 
 ## Installation
@@ -72,9 +74,10 @@ Enable in settings for automatic translation on specific domains (Telegram, Disc
 
 ### Keyboard Shortcuts
 
-- **Tab**: Apply suggested translation
-- **Esc**: Dismiss suggestion
-- **Delete/Backspace**: Dismiss and continue editing
+- **Tab**: Apply suggested translation (Manual & Instant mode)
+- **Esc**: Dismiss suggestion or popup
+- **Delete/Backspace**: Dismiss suggestion and continue editing
+- **Ctrl+Shift+I** (or **Cmd+Shift+I** on Mac): Toggle Instant Translate for the current domain
 
 ## Configuration
 
@@ -109,6 +112,16 @@ Open the extension popup to customize:
 - openai.com (top)
 - claude.ai (top)
 - gemini.google.com (top)
+
+## Changelog
+
+### v1.1.1
+- **New**: Added `Ctrl+Shift+I` (Cmd on Mac) shortcut to quickly toggle Instant Translate for the current domain.
+- **New**: Added "Instant" label indicator above input fields when instant mode is active.
+- **Improvement**: Select-to-Translate popup is now draggable.
+- **Improvement**: Added "Copy to Clipboard" button in Select-to-Translate popup.
+- **Improvement**: Added Model selection and Source/Target language selectors directly in the Select-to-Translate popup.
+- **Improvement**: Enhanced UI aesthetics with smooth transitions and better positioning.
 
 ## License
 
