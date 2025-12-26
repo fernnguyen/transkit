@@ -380,6 +380,44 @@ input:checked + .slider:before {
   gap: var(--bt-space-small);
   margin-top: var(--bt-space-small);
 }
+
+/* Keyboard Shortcut Config */
+.bt-shortcut-config {
+  display: grid;
+  gap: var(--bt-space-medium);
+  padding: var(--bt-space-medium);
+  background: var(--bt-color-background-hover);
+  border-radius: var(--bt-radius-small);
+}
+
+.bt-shortcut-row {
+  display: flex;
+  gap: var(--bt-space-medium);
+  flex-wrap: wrap;
+}
+
+.bt-shortcut-row label {
+  display: flex;
+  align-items: center;
+  gap: var(--bt-space-small);
+  font-size: var(--bt-font-size-small);
+  cursor: pointer;
+  user-select: none;
+}
+
+.bt-shortcut-row input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.bt-shortcut-preview {
+  padding: var(--bt-space-small);
+  background: var(--bt-color-white);
+  border-radius: var(--bt-radius-small);
+  border: 1px solid var(--bt-color-border-default);
+  text-align: center;
+  font-family: monospace;
+}
+
 .title {
   display: flex;
   align-items: center;   /* căn giữa theo chiều dọc */

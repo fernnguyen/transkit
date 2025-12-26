@@ -97,7 +97,34 @@
               <label for="instant-delay" data-i18n="popup.instantDelay">Delay (seconds)</label>
               <input type="number" id="instant-delay" class="bt-input" min="1" max="10" value="3" />
             </div>
-            
+
+            <div class="bt-field">
+              <label data-i18n="popup.toggleShortcut">Toggle Instant Shortcut</label>
+              <div class="bt-shortcut-config">
+                <div class="bt-shortcut-row">
+                  <label>
+                    <input type="checkbox" id="shortcut-ctrl" checked />
+                    <span data-i18n="popup.shortcutCtrl">Ctrl/Cmd</span>
+                  </label>
+                  <label>
+                    <input type="checkbox" id="shortcut-shift" checked />
+                    <span data-i18n="popup.shortcutShift">Shift</span>
+                  </label>
+                  <label>
+                    <input type="checkbox" id="shortcut-alt" />
+                    <span data-i18n="popup.shortcutAlt">Alt</span>
+                  </label>
+                </div>
+                <div class="bt-field">
+                  <label for="shortcut-key" data-i18n="popup.shortcutKey">Key</label>
+                  <input type="text" id="shortcut-key" class="bt-input" maxlength="1" value="I" style="width: 60px; text-transform: uppercase;" />
+                </div>
+                <div class="bt-shortcut-preview">
+                  <small id="shortcut-preview" style="color: #888;">Ctrl+Shift+I (Cmd+Shift+I on Mac)</small>
+                </div>
+              </div>
+            </div>
+
             <div class="bt-field">
               <label data-i18n="popup.activeDomains">Active Domains</label>
               <div id="instant-domain-list" class="bt-domain-list"></div>

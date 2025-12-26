@@ -22,6 +22,13 @@ const domainListEl = document.querySelector("#instant-domain-list");
 const newDomainInput = document.querySelector("#new-domain");
 const addDomainBtn = document.querySelector("#add-domain");
 
+// Keyboard shortcut elements
+const shortcutCtrlCheckbox = document.querySelector("#shortcut-ctrl");
+const shortcutShiftCheckbox = document.querySelector("#shortcut-shift");
+const shortcutAltCheckbox = document.querySelector("#shortcut-alt");
+const shortcutKeyInput = document.querySelector("#shortcut-key");
+const shortcutPreview = document.querySelector("#shortcut-preview");
+
 // Provider List elements
 const providerListEl = document.querySelector("#provider-list");
 const btnAddProvider = document.querySelector("#btn-add-provider");
@@ -400,12 +407,29 @@ function updateSettingsVisibility() {
 
 function toggleInstantSettings() {
   if (!instantEnabledCheckbox || !instantSettings) return;
-  
+
   if (instantEnabledCheckbox.checked) {
     instantSettings.removeAttribute('hidden');
   } else {
     instantSettings.setAttribute('hidden', 'true');
   }
+}
+
+function updateShortcutPreview() {
+  if (!shortcutPreview) return;
+
+  const parts = [];
+  if (shortcutCtrlCheckbox.checked) parts.push('Ctrl');
+  if (shortcutShiftCheckbox.checked) parts.push('Shift');
+  if (shortcutAltCheckbox.checked) parts.push('Alt');
+
+  const key = shortcutKeyInput.value.toUpperCase() || 'I';
+  parts.push(key);
+
+  const shortcut = parts.join('+');
+  const macShortcut = shortcut.replace('Ctrl', 'Cmd');
+
+  shortcutPreview.textContent = `${shortcut} (${macShortcut} on Mac)`;
 }
 
 async function loadSettings() {
@@ -441,7 +465,20 @@ async function loadSettings() {
       { id: "builtin", type: "gemini-nano", name: "Chrome Built-in AI", config: {} }
     ];
     activeProviderId = res.settings.activeProviderId || "builtin";
-    
+
+    // Load Keyboard Shortcut
+    const shortcut = res.settings.instantToggleShortcut || {
+      key: "I",
+      ctrl: true,
+      shift: true,
+      alt: false
+    };
+    if (shortcutCtrlCheckbox) shortcutCtrlCheckbox.checked = shortcut.ctrl;
+    if (shortcutShiftCheckbox) shortcutShiftCheckbox.checked = shortcut.shift;
+    if (shortcutAltCheckbox) shortcutAltCheckbox.checked = shortcut.alt;
+    if (shortcutKeyInput) shortcutKeyInput.value = shortcut.key.toUpperCase();
+    updateShortcutPreview();
+
   } else {
     // Defaults
     enabledCheckbox.checked = true;
@@ -463,8 +500,15 @@ async function loadSettings() {
     
     providers = [{ id: "builtin", type: "gemini-nano", name: "Chrome Built-in AI", config: {} }];
     activeProviderId = "builtin";
+
+    // Default keyboard shortcut
+    if (shortcutCtrlCheckbox) shortcutCtrlCheckbox.checked = true;
+    if (shortcutShiftCheckbox) shortcutShiftCheckbox.checked = true;
+    if (shortcutAltCheckbox) shortcutAltCheckbox.checked = false;
+    if (shortcutKeyInput) shortcutKeyInput.value = "I";
+    updateShortcutPreview();
   }
-  
+
   renderAliases();
   renderDomains();
   renderProviderList();
@@ -487,7 +531,14 @@ async function saveSettings() {
     instantDomains: currentDomains,
     // New Provider Structure
     providers,
-    activeProviderId
+    activeProviderId,
+    // Keyboard shortcut
+    instantToggleShortcut: {
+      key: shortcutKeyInput?.value.toUpperCase() || "I",
+      ctrl: shortcutCtrlCheckbox?.checked || false,
+      shift: shortcutShiftCheckbox?.checked || false,
+      alt: shortcutAltCheckbox?.checked || false
+    }
   };
 
   const res = await chrome.runtime.sendMessage({
@@ -573,6 +624,38 @@ if (addDomainBtn && newDomainInput) {
       saveSettings();
     }
   });
+}
+
+// Keyboard Shortcut Event Listeners
+if (shortcutCtrlCheckbox) {
+  shortcutCtrlCheckbox.addEventListener("change", () => {
+    updateShortcutPreview();
+    saveSettings();
+  });
+}
+
+if (shortcutShiftCheckbox) {
+  shortcutShiftCheckbox.addEventListener("change", () => {
+    updateShortcutPreview();
+    saveSettings();
+  });
+}
+
+if (shortcutAltCheckbox) {
+  shortcutAltCheckbox.addEventListener("change", () => {
+    updateShortcutPreview();
+    saveSettings();
+  });
+}
+
+if (shortcutKeyInput) {
+  shortcutKeyInput.addEventListener("input", (e) => {
+    // Only allow single letter
+    e.target.value = e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 1);
+    updateShortcutPreview();
+  });
+
+  shortcutKeyInput.addEventListener("change", saveSettings);
 }
 
 document.querySelectorAll('.bt-tab').forEach(tab => {

@@ -57,7 +57,14 @@ async function readSettings() {
           name: "Chrome Built-in AI",
           config: {}
         }
-      ]
+      ],
+      // Keyboard shortcut for toggle instant domain
+      instantToggleShortcut: {
+        key: "I",
+        ctrl: true,
+        shift: true,
+        alt: false
+      }
     }
   );
 }

@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
   "name": "TransKit – Power Inline Translate Kit",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "description": "Translate inline, domain-aware, offline-first. No tracking. Open source.",
   "author": "@FernNguyen",
-  "homepage_url": "https://github.com/fernnguyen/transkit",
+  "homepage_url": "https://transkit.app",
   "icons": {
     "16": "assets/icons/icon-16.png",
     "32": "assets/icons/icon-32.png",

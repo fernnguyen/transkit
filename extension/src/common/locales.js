@@ -40,7 +40,12 @@ export const locales = {
     "popup.model": "Model",
     "popup.baseUrl": "Base URL (Optional)",
     "popup.deeplHint": "Supports Free and Pro API keys.",
-    
+    "popup.toggleShortcut": "Toggle Instant Shortcut",
+    "popup.shortcutKey": "Key",
+    "popup.shortcutCtrl": "Ctrl/Cmd",
+    "popup.shortcutShift": "Shift",
+    "popup.shortcutAlt": "Alt",
+
     // Help
     "help.title": "How to use TransKit",
     "help.commands.title": "Command Translation",
@@ -65,7 +70,15 @@ export const locales = {
     "toast.translationFailed": "Translation failed",
     "toast.invalidLanguage": "Invalid language or alias",
     "toast.extensionUpdated": "Extension updated. Please refresh the page.",
-    
+    "toast.domainNotInList": "This domain is not in instant translate list",
+    "toast.instantEnabled": "⚡ Instant translate enabled",
+    "toast.instantDisabled": "Instant translate disabled",
+    "toast.for": "for",
+    "toast.error": "Error occurred",
+
+    // Label
+    "label.instant": "⚡ Instant",
+
     // Selection Popup
     "selection.title": "TransKit Translation",
     "selection.original": "Original",
@@ -138,7 +151,12 @@ export const locales = {
     "popup.model": "Mô hình",
     "popup.baseUrl": "Base URL (Tùy chọn)",
     "popup.deeplHint": "Hỗ trợ cả khóa API miễn phí và trả phí.",
-    
+    "popup.toggleShortcut": "Phím tắt bật/tắt Instant",
+    "popup.shortcutKey": "Phím",
+    "popup.shortcutCtrl": "Ctrl/Cmd",
+    "popup.shortcutShift": "Shift",
+    "popup.shortcutAlt": "Alt",
+
     // Help
     "help.title": "Hướng dẫn sử dụng TransKit",
     "help.commands.title": "Dịch bằng lệnh",
@@ -163,7 +181,15 @@ export const locales = {
     "toast.translationFailed": "Dịch thất bại",
     "toast.invalidLanguage": "Ngôn ngữ hoặc phím tắt không hợp lệ",
     "toast.extensionUpdated": "Extension đã được cập nhật. Vui lòng tải lại trang.",
-    
+    "toast.domainNotInList": "Tên miền này không có trong danh sách dịch nhanh",
+    "toast.instantEnabled": "Đã bật dịch nhanh",
+    "toast.instantDisabled": "Đã tắt dịch nhanh",
+    "toast.for": "cho",
+    "toast.error": "Đã xảy ra lỗi",
+
+    // Label
+    "label.instant": "Dịch nhanh",
+
     // Selection Popup
     "selection.title": "Dịch với TransKit",
     "selection.original": "Ngôn ngữ gốc",

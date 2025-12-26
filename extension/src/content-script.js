@@ -54,6 +54,8 @@ const commonStyles = {
   registerAutoDetection();
   registerInstantMode();
   registerSelectionMode();
+  registerInstantToggleShortcut();
+  registerInstantLabelIndicator();
 })();
 
 function injectGlobalStylesheet() {
@@ -207,10 +209,43 @@ function removeTranslationCommandSuffix(element) {
 
 function showToast(message) {
   const host = document.createElement("div");
-  host.className = "bt-toast bt-vars-container";
-  host.textContent = message;
+  host.className = "bt-toast-notify bt-vars-container";
+
+  // Determine icon based on message content
+  let icon = '•';
+  const lowerMsg = message.toLowerCase();
+
+  if (lowerMsg.includes('translating') || lowerMsg.includes('đang dịch')) {
+    icon = '⏳';
+  } else if (lowerMsg.includes('enabled') || lowerMsg.includes('đã bật')) {
+    icon = '✓';
+  } else if (lowerMsg.includes('disabled') || lowerMsg.includes('đã tắt')) {
+    icon = '✕';
+  } else if (lowerMsg.includes('failed') || lowerMsg.includes('thất bại')) {
+    icon = '⚠️';
+  } else if (lowerMsg.includes('updated') || lowerMsg.includes('cập nhật')) {
+    icon = 'ℹ️';
+  } else if (lowerMsg.includes('error') || lowerMsg.includes('lỗi')) {
+    icon = '❌';
+  } else if (lowerMsg.includes('invalid') || lowerMsg.includes('không hợp lệ')) {
+    icon = '⚠️';
+  } else if (lowerMsg.includes('instant')) {
+    icon = '⚡';
+  }
+
+  host.innerHTML = `
+    <div class="bt-toast-notify-content">
+      <span class="bt-toast-notify-icon">${icon}</span>
+      <span class="bt-toast-notify-text">${message}</span>
+    </div>
+  `;
   document.documentElement.appendChild(host);
-  setTimeout(() => host.remove(), 2400);
+
+  // Fade out animation - close faster
+  setTimeout(() => {
+    host.classList.add('bt-toast-notify-exit');
+    setTimeout(() => host.remove(), 300);
+  }, 1500);
 }
 
 function registerAutoDetection() {
@@ -280,7 +315,10 @@ async function handleAutoTranslation(element, parsed) {
     
     // If confirm is OFF, just translate and replace immediately
     if (!settings.showConfirmModal) {
-      showToast(i18n.t("toast.translating"));
+      // Only show loading for non-builtin models
+      if (settings.activeProviderId !== "builtin") {
+        showToast(i18n.t("toast.translating"));
+      }
       let res;
       try {
         res = await requestTranslation({
@@ -303,7 +341,10 @@ async function handleAutoTranslation(element, parsed) {
     }
 
     // If confirm is ON, show inline suggestion
-    showToast(i18n.t("toast.translating"));
+    // Only show loading for non-builtin models
+    if (settings.activeProviderId !== "builtin") {
+      showToast(i18n.t("toast.translating"));
+    }
 
     let res;
     try {
@@ -735,7 +776,10 @@ async function handleInstantTranslate(element) {
   // Start new timer
   instantTimer = setTimeout(async () => {
     try {
-      showToast(i18n.t("toast.translating"));
+      // Only show loading for non-builtin models
+      if (settings.activeProviderId !== "builtin") {
+        showToast(i18n.t("toast.translating"));
+      }
       
       const res = await requestTranslation({
         text: text,
@@ -856,6 +900,223 @@ function registerInstantMode() {
       }
     }
   }, true);
+}
+
+// ============================================
+// INSTANT TOGGLE SHORTCUT
+// ============================================
+
+async function toggleInstantDomainForCurrentUrl() {
+  try {
+    const settings = await getSettings();
+    const currentUrl = window.location.href;
+
+    // Find matching domain
+    const matchingDomainIndex = settings.instantDomains.findIndex(
+      d => currentUrl.includes(d.domain)
+    );
+
+    if (matchingDomainIndex === -1) {
+      // Current domain not in list
+      showToast(i18n.t("toast.domainNotInList") || "This domain is not in instant translate list");
+      return;
+    }
+
+    // Toggle enabled state
+    const domain = settings.instantDomains[matchingDomainIndex];
+    domain.enabled = !domain.enabled;
+
+    // Update settings
+    await chrome.runtime.sendMessage({
+      type: "set-settings",
+      settings: settings
+    });
+
+    // Show toast notification with domain name
+    const status = domain.enabled
+      ? (i18n.t("toast.instantEnabled") || "⚡ Instant translate enabled")
+      : (i18n.t("toast.instantDisabled") || "Instant translate disabled");
+
+    const forText = i18n.t("toast.for") || "for";
+    showToastBottomRight(`${status} ${forText} ${domain.domain}`);
+
+    // Clear any pending instant translation when disabling
+    if (!domain.enabled && instantTimer) {
+      clearTimeout(instantTimer);
+      instantTimer = null;
+    }
+
+    // Dismiss current suggestion when disabling
+    if (!domain.enabled && currentSuggestion) {
+      currentSuggestion.destroy();
+      currentSuggestion = null;
+    }
+  } catch (err) {
+    console.error("Toggle instant domain error:", err);
+    showToast(i18n.t("toast.error") || "Error toggling instant domain");
+  }
+}
+
+// Alias: showToastBottomRight cũng sử dụng style modern
+function showToastBottomRight(message) {
+  showToast(message);
+}
+
+function registerInstantToggleShortcut() {
+  document.addEventListener('keydown', async (e) => {
+    const settings = await getSettings();
+    const shortcut = settings.instantToggleShortcut || {
+      key: "I",
+      ctrl: true,
+      shift: true,
+      alt: false
+    };
+
+    // Check if shortcut matches
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const modifierKey = isMac ? e.metaKey : e.ctrlKey;
+
+    const matches =
+      e.key.toUpperCase() === shortcut.key.toUpperCase() &&
+      modifierKey === shortcut.ctrl &&
+      e.shiftKey === shortcut.shift &&
+      e.altKey === shortcut.alt;
+
+    if (matches) {
+      e.preventDefault();
+      e.stopPropagation();
+      await toggleInstantDomainForCurrentUrl();
+    }
+  }, true);
+}
+
+// ============================================
+// INSTANT LABEL INDICATOR
+// ============================================
+
+function registerInstantLabelIndicator() {
+  // Create label element
+  const label = document.createElement('div');
+  const iconUrl = chrome.runtime.getURL('assets/icons/icon-19.png');
+  const labelText = document.createElement('span');
+
+  // Create img element
+  const img = document.createElement('img');
+  img.src = iconUrl;
+  img.alt = 'TransKit';
+  img.style.cssText = 'width: 14px; height: 14px; flex-shrink: 0;';
+
+  label.appendChild(img);
+  label.appendChild(labelText);
+
+  label.style.cssText = `
+    position: fixed;
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    color: white;
+    padding: 3px 6px;
+    border-radius: 5px;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    z-index: 9999999;
+    pointer-events: none;
+    display: none;
+    align-items: center;
+    gap: 3px;
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.25), 0 1px 3px rgba(0, 0, 0, 0.1);
+    white-space: nowrap;
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    opacity: 0.88;
+    animation: labelFadeIn 0.3s ease-out;
+  `;
+
+  document.body.appendChild(label);
+
+  let currentSettings = null;
+  let labelTimeout = null;
+
+  // Load initial settings
+  getSettings().then(s => {
+    currentSettings = s;
+  });
+
+  // Update settings when they change
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'local' && changes.translatorSettings) {
+      currentSettings = changes.translatorSettings.newValue;
+    }
+  });
+
+  // Check if instant is enabled for current domain
+  function isInstantEnabledForCurrentDomain() {
+    if (!currentSettings || !currentSettings.instantTranslateEnabled) {
+      return false;
+    }
+
+    const currentUrl = window.location.href;
+    const matchingDomain = currentSettings.instantDomains.find(
+      d => d.enabled && currentUrl.includes(d.domain)
+    );
+
+    return !!matchingDomain;
+  }
+
+  // Hide label function
+  function hideLabel() {
+    if (labelTimeout) {
+      clearTimeout(labelTimeout);
+    }
+    label.style.transition = 'opacity 0.3s ease-out';
+    label.style.opacity = '0';
+    setTimeout(() => {
+      label.style.display = 'none';
+      label.style.transition = 'none';
+      label.style.opacity = '0.88';
+    }, 300);
+  }
+
+  // Show label once on focus
+  function handleInputFocus(e) {
+    if (!isEditableElement(e.target) || !isInstantEnabledForCurrentDomain()) {
+      return;
+    }
+
+    // Clear any existing timeout
+    if (labelTimeout) {
+      clearTimeout(labelTimeout);
+    }
+
+    // Get input position - align left
+    const rect = e.target.getBoundingClientRect();
+    const offsetY = rect.top - 35; // Position above input
+    const offsetX = rect.left; // Align left with input
+
+    // Update label text with i18n
+    labelText.textContent = i18n.t("label.instant") || "Instant";
+
+    // Show label
+    label.style.left = `${offsetX}px`;
+    label.style.top = `${offsetY}px`;
+    label.style.display = 'flex';
+    label.style.opacity = '0.88';
+    label.style.transition = 'none';
+
+    // Auto-hide after 3.5 seconds
+    labelTimeout = setTimeout(() => {
+      hideLabel();
+    }, 3500);
+
+    // Hide on blur
+    const handleBlur = () => {
+      hideLabel();
+      e.target.removeEventListener('blur', handleBlur);
+    };
+    e.target.addEventListener('blur', handleBlur);
+  }
+
+  // Add focus listener on document (capture phase)
+  document.addEventListener('focus', handleInputFocus, true);
 }
 
 // ============================================
