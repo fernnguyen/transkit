@@ -209,29 +209,40 @@ function removeTranslationCommandSuffix(element) {
 
 function showToast(message) {
   const host = document.createElement("div");
-  host.className = "bt-toast-notify bt-vars-container";
-
-  // Determine icon based on message content
-  let icon = '•';
   const lowerMsg = message.toLowerCase();
+
+  // Determine toast type and icon
+  let icon = '•';
+  let toastType = 'default'; // default, warning, success
 
   if (lowerMsg.includes('translating') || lowerMsg.includes('đang dịch')) {
     icon = '⏳';
+    toastType = 'default';
   } else if (lowerMsg.includes('enabled') || lowerMsg.includes('đã bật')) {
     icon = '✓';
+    toastType = 'success';
   } else if (lowerMsg.includes('disabled') || lowerMsg.includes('đã tắt')) {
-    icon = '✕';
+    icon = '⚠️';
+    toastType = 'warning';
   } else if (lowerMsg.includes('failed') || lowerMsg.includes('thất bại')) {
     icon = '⚠️';
+    toastType = 'warning';
   } else if (lowerMsg.includes('updated') || lowerMsg.includes('cập nhật')) {
     icon = 'ℹ️';
+    toastType = 'default';
   } else if (lowerMsg.includes('error') || lowerMsg.includes('lỗi')) {
     icon = '❌';
+    toastType = 'warning';
   } else if (lowerMsg.includes('invalid') || lowerMsg.includes('không hợp lệ')) {
     icon = '⚠️';
+    toastType = 'warning';
   } else if (lowerMsg.includes('instant')) {
     icon = '⚡';
+    toastType = 'default';
   }
+
+  // Set class based on type
+  host.className = `bt-toast-notify bt-toast-notify-${toastType} bt-vars-container`;
 
   host.innerHTML = `
     <div class="bt-toast-notify-content">

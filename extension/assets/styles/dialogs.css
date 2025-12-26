@@ -146,6 +146,22 @@
   animation: slideOutRight 0.3s ease-in forwards;
 }
 
+/* Toast Variants */
+.bt-toast-notify-success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 10px 25px rgba(16, 185, 129, 0.25), 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.bt-toast-notify-warning {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  box-shadow: 0 10px 25px rgba(245, 158, 11, 0.25), 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.bt-toast-notify-default {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  box-shadow: 0 10px 25px rgba(14, 165, 233, 0.25), 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
 @keyframes slideInRight {
   from {
     transform: translateX(400px);
