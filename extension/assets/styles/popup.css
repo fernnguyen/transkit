@@ -290,8 +290,9 @@ em {
 .bt-switch {
   position: relative;
   display: inline-block;
-  width: 40px;
-  height: 24px;
+  width: 34px; /* Reduced from 40px */
+  height: 18px; /* Reduced from 24px */
+  vertical-align: middle;
 }
 
 .bt-switch input {
@@ -314,10 +315,10 @@ em {
 .slider:before {
   position: absolute;
   content: "";
-  height: 16px;
-  width: 16px;
-  left: 4px;
-  bottom: 4px;
+  height: 14px; /* Reduced from 16px */
+  width: 14px; /* Reduced from 16px */
+  left: 2px; /* Adjusted */
+  bottom: 2px; /* Adjusted */
   background-color: white;
   transition: .4s;
 }
@@ -331,7 +332,7 @@ input:focus + .slider {
 }
 
 input:checked + .slider:before {
-  transform: translateX(16px);
+  transform: translateX(16px); /* Adjusted for new width (34 - 14 - 4 = 16) */
 }
 
 .slider.round {

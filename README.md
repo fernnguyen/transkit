@@ -125,6 +125,17 @@ Open the extension popup to customize:
 
 ## Changelog
 
+### v1.2.0
+- **New**: **Hover to Translate** - Simply hover over any text and press a modifier key (default: `Ctrl`) to see an instant translation.
+  - **Smart Selection**: Intelligently detects paragraphs, sentences, or specific text blocks.
+  - **Unique Mode**: Option to show only one translation at a time to keep your screen clean.
+  - **Customizable**: Choose your preferred modifier key (Ctrl, Alt, Shift), text color, and font size.
+  - **Inject or Replace**: Choose to display translation below the original text or replace it entirely.
+- **Improved**: **Modernized UI** - Replaced checkboxes with sleek toggle switches for a cleaner look.
+- **Improved**: **Settings Organization** - Better layout for settings with instant auto-save for all preferences.
+- **Improved**: **Localization** - Added full Vietnamese language support for all new features.
+- **Fix**: Resolved various minor UI bugs and improved performance.
+
 ### v1.1.2
 - **New**: Custom AI Provider Support - Configure your own translation providers
   - **Ollama (Local)**: Run AI models locally on your machine for 100% privacy and offline capability

@@ -1,0 +1,99 @@
+/* Hover translate cursor feedback */
+body.bt-hover-translate-active {
+  cursor: crosshair !important;
+}
+
+body.bt-hover-translate-active * {
+  cursor: crosshair !important;
+}
+
+/* Injected translation */
+.bt-hover-translation {
+  margin-top: 4px;
+  /* padding: 8px 12px; Removed for native look */
+  /* border-radius: 6px; Removed for native look */
+  font-size: var(--bt-hover-font-size, 0.95em);
+  line-height: 1.4;
+  /* box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); Removed for native look */
+  animation: btHoverFadeIn 0.2s ease-out;
+  position: relative;
+  background-color: var(--bt-hover-bg-color, transparent); /* Default to transparent or user setting */
+  color: var(--bt-hover-text-color, inherit); /* Default to inherit or user setting */
+  display: block; /* Ensure block display */
+}
+
+.bt-hover-translation.bt-hover-underline {
+  text-decoration: underline;
+}
+
+/* Loading state */
+.bt-hover-loading-icon {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+  margin-right: 8px;
+  display: inline-block;
+}
+
+/* Remove old emoji icon */
+.bt-hover-translation::before {
+  content: none;
+  display: none;
+}
+
+/* Original element highlight */
+.bt-hover-original {
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+/* Replaced element highlight */
+.bt-hover-translated {
+  background: rgba(118, 75, 162, 0.15);
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+@keyframes btHoverFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Style config UI */
+.bt-hover-style-config {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bt-space-medium);
+}
+
+.bt-hover-style-config input[type="color"] {
+  width: 100%;
+  height: 40px;
+  border: var(--bt-border-width) solid var(--bt-color-border-default);
+  border-radius: var(--bt-radius-small);
+  cursor: pointer;
+}
+
+/* Domain list section toggle */
+.bt-domain-list-section {
+  margin-top: var(--bt-space-small);
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+  }
+}

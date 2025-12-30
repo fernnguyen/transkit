@@ -57,6 +57,8 @@ const commonStyles = {
   registerSelectionMode();
   registerInstantToggleShortcut();
   registerInstantLabelIndicator();
+  registerHoverTranslate();
+  registerHoverToggleShortcut();
 })();
 
 function injectGlobalStylesheet() {
@@ -1632,3 +1634,568 @@ function makeDraggable(element, handle) {
     document.onmousemove = null;
   }
 }
+// Hover translate state
+let hoverModifierPressed = false;
+let hoverTranslateCache = new Map();
+let currentHoveredElement = null;
+let hoverTimeout = null;
+let lastMouseX = 0;
+let lastMouseY = 0;
+
+document.addEventListener('mousemove', (e) => {
+  lastMouseX = e.clientX;
+  lastMouseY = e.clientY;
+}, { passive: true });
+
+function registerHoverTranslate() {
+
+  
+  // Track modifier key state
+  document.addEventListener('keydown', async (e) => {
+
+    
+    const settings = await getSettings();
+
+    
+    if (!settings.hoverTranslateEnabled) {
+
+      return;
+    }
+    
+    const isOnDomain = isHoverTranslateDomain(settings);
+
+    if (!isOnDomain) {
+
+      return;
+    }
+    
+    const key = settings.hoverModifierKey || 'ctrl';
+
+    if (
+      (key === 'ctrl' && e.ctrlKey) ||
+      (key === 'shift' && e.shiftKey) ||
+      (key === 'alt' && e.altKey)
+    ) {
+
+      hoverModifierPressed = true;
+      document.body.classList.add('bt-hover-translate-active');
+      
+      // Apply custom styles
+      applyHoverCustomStyles(settings.hoverInjectStyle);
+      
+      // Trigger translation or toggle if already hovering over an element
+      const element = document.elementFromPoint(lastMouseX, lastMouseY);
+      if (element) {
+        // Check if hovering over a translation or an already translated element
+        const translationEl = element.closest('.bt-hover-translation');
+        const originalEl = element.closest('[data-bt-translated="true"]');
+        
+        if (translationEl) {
+          // Hovering over translation -> Close it
+
+          const prev = translationEl.previousElementSibling;
+          if (prev && prev.dataset.btTranslated) {
+            delete prev.dataset.btTranslated;
+            prev.classList.remove('bt-hover-original');
+          }
+          translationEl.remove();
+          return;
+        }
+        
+        if (originalEl) {
+          // Hovering over original that is already translated -> Close it
+
+          const next = originalEl.nextElementSibling;
+          if (next && next.classList.contains('bt-hover-translation')) {
+            next.remove();
+          }
+          delete originalEl.dataset.btTranslated;
+          originalEl.classList.remove('bt-hover-original');
+          return;
+        }
+
+
+        const translatable = findTranslatableElement(element);
+        if (translatable) {
+
+          
+          // Unique Mode: Clear all other translations if enabled
+          if (settings.hoverUniqueMode !== false) {
+             clearAllHoverTranslations();
+          }
+          
+          handleHoverTranslate(translatable, settings);
+        }
+      }
+    }
+  }, true);
+
+  document.addEventListener('keyup', async (e) => {
+    const settings = await getSettings();
+    const key = settings.hoverModifierKey || 'ctrl';
+    
+    if (
+      (key === 'ctrl' && !e.ctrlKey) ||
+      (key === 'shift' && !e.shiftKey) ||
+      (key === 'alt' && !e.altKey)
+    ) {
+
+      hoverModifierPressed = false;
+      document.body.classList.remove('bt-hover-translate-active');
+      // clearAllHoverTranslations(); // Don't clear on key release
+    }
+  }, true);
+
+  // Hover detection with debouncing
+  document.addEventListener('mouseover', async (e) => {
+
+    
+    if (!hoverModifierPressed) return;
+    
+
+    const settings = await getSettings();
+    if (!isHoverTranslateDomain(settings)) {
+
+      return;
+    }
+    
+
+    clearTimeout(hoverTimeout);
+    const element = findTranslatableElement(e.target);
+    
+    if (!element) {
+
+      return;
+    }
+    if (element === currentHoveredElement) {
+
+      return;
+    }
+    
+
+    currentHoveredElement = element;
+    hoverTimeout = setTimeout(() => {
+
+      handleHoverTranslate(element, settings);
+    }, 200);
+  }, true);
+
+  document.addEventListener('mouseout', () => {
+    clearTimeout(hoverTimeout);
+  }, true);
+}
+
+function findTranslatableElement(target) {
+  let element = target;
+  let depth = 0;
+  const maxDepth = 5;
+  
+
+  
+  while (element && depth < maxDepth) {
+    // Ignore our own translation elements
+    if (element.classList.contains('bt-hover-translation')) return null;
+    
+    // Ignore interactive elements to avoid conflict
+    if (['BUTTON', 'INPUT', 'TEXTAREA', 'SELECT', 'A'].includes(element.tagName)) {
+       // Unless it's a link with significant text, maybe? For now, skip to avoid issues.
+       // Actually, users might want to translate links. Let's allow A if it has text.
+       if (element.tagName !== 'A') {
+         element = element.parentElement;
+         depth++;
+         continue;
+       }
+    }
+
+    const text = element.textContent?.trim();
+    
+    if (text && text.length > 2 && text.length < 2000) { // Adjusted limits
+      const tagName = element.tagName?.toLowerCase();
+      // Expanded tag list
+      if (['div', 'p', 'span', 'article', 'section', 'li', 'td', 'th', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'a', 'b', 'i', 'strong', 'em', 'blockquote', 'pre', 'code'].includes(tagName)) {
+        
+        // Smart check: If it's a DIV/SECTION, ensure it's not just a container of other blocks
+        // We prefer "leaf" blocks or blocks with mostly text
+        if (['div', 'section', 'article'].includes(tagName)) {
+           const childBlockCount = element.querySelectorAll('div, p, section, article, li').length;
+           // If it has too many block children, it's likely a container. Skip it unless it has direct text.
+           if (childBlockCount > 3) {
+             // Check if it has significant direct text
+             const directText = Array.from(element.childNodes)
+               .filter(n => n.nodeType === Node.TEXT_NODE)
+               .map(n => n.textContent.trim())
+               .join('');
+             if (directText.length < 50) {
+               element = element.parentElement;
+               depth++;
+               continue;
+             }
+           }
+        }
+
+        const textNodes = Array.from(element.childNodes).filter(
+          n => n.nodeType === Node.TEXT_NODE && n.textContent.trim()
+        );
+        
+        // Allow if it has text nodes OR is a small container
+        if (textNodes.length > 0 || element.children.length <= 3) {
+
+          return element;
+        }
+      }
+    }
+    
+    element = element.parentElement;
+    depth++;
+  }
+  
+
+  return null;
+}
+
+async function handleHoverTranslate(element, settings) {
+  const text = element.textContent?.trim();
+
+  if (!text) {
+
+    return;
+  }
+  
+  // Create placeholder immediately
+  const placeholder = createHoverPlaceholder(element, settings);
+  
+  const cacheKey = `${text}-${settings.targetLanguageCode}`;
+  if (hoverTranslateCache.has(cacheKey)) {
+
+    updateHoverContent(placeholder, hoverTranslateCache.get(cacheKey), settings);
+    return;
+  }
+  
+
+  try {
+    const res = await requestTranslation({
+      text: text,
+      nativeLanguageCode: settings.nativeLanguageCode || "en",
+      targetLanguage: settings.targetLanguageCode || "vi",
+      preferNativeAsSource: settings.preferNativeAsSource !== false
+    });
+    
+
+    if (res?.ok && res.result?.translation) {
+      const translation = res.result.translation;
+
+      hoverTranslateCache.set(cacheKey, translation);
+      updateHoverContent(placeholder, translation, settings);
+    } else {
+
+      placeholder.remove(); // Remove on error
+    }
+  } catch (err) {
+
+    placeholder.remove(); // Remove on error
+  }
+}
+
+function createHoverPlaceholder(element, settings) {
+  // Check if already exists
+  let existing = element.nextElementSibling;
+  if (existing && existing.classList.contains('bt-hover-translation')) {
+    return existing;
+  }
+
+  // Create element of the same tag to mimic structure
+  const translationEl = document.createElement(element.tagName);
+  translationEl.className = 'bt-hover-translation';
+  
+  // Copy styles from original element to look like a clone
+  const computedStyle = window.getComputedStyle(element);
+  
+  // Copy text styles
+  translationEl.style.fontFamily = computedStyle.fontFamily;
+  translationEl.style.fontSize = settings.hoverInjectStyle?.fontSize || computedStyle.fontSize;
+  translationEl.style.fontWeight = computedStyle.fontWeight;
+  translationEl.style.fontStyle = computedStyle.fontStyle;
+  translationEl.style.lineHeight = computedStyle.lineHeight;
+  translationEl.style.textAlign = computedStyle.textAlign;
+  translationEl.style.letterSpacing = computedStyle.letterSpacing;
+  
+  // Color Logic:
+  // Always transparent background.
+  // Use user's textColor (default Red #ff0000).
+  translationEl.style.backgroundColor = 'transparent';
+  translationEl.style.color = settings.hoverInjectStyle?.textColor || '#ff0000';
+  
+  // Copy layout styles
+  translationEl.style.padding = computedStyle.padding;
+  translationEl.style.margin = computedStyle.margin;
+  translationEl.style.marginTop = '4px'; // Add slight separation
+  translationEl.style.width = computedStyle.width !== 'auto' ? computedStyle.width : '100%';
+  translationEl.style.boxSizing = 'border-box';
+  
+  // Ensure block display for proper positioning below
+  translationEl.style.display = 'block';
+  
+  const style = settings.hoverInjectStyle || {};
+  if (style.underline) {
+    translationEl.classList.add('bt-hover-underline');
+  }
+  
+  // Add TransKit Icon at start (if enabled)
+  if (style.showIcon !== false) {
+    const icon = document.createElement('img');
+    icon.src = chrome.runtime.getURL('assets/icons/icon-19.png'); // Use small icon
+    icon.className = 'bt-hover-icon';
+    icon.style.width = '14px';
+    icon.style.height = '14px';
+    icon.style.verticalAlign = 'middle';
+    icon.style.marginRight = '6px';
+    icon.style.display = 'inline-block';
+    translationEl.appendChild(icon);
+  }
+
+  // Add loading icon
+  const loadingIcon = document.createElement('img');
+  loadingIcon.src = chrome.runtime.getURL('assets/icons/loading.gif');
+  loadingIcon.className = 'bt-hover-loading-icon';
+  translationEl.appendChild(loadingIcon);
+  
+  translationEl.dataset.btInjected = 'true';
+  
+  // Ensure original element handles the insertion correctly
+  // if (computedStyle.display === 'inline') {
+  //   element.style.display = 'inline-block';
+  // }
+  
+  element.insertAdjacentElement('afterend', translationEl);
+  // element.classList.add('bt-hover-original'); // Keep natural
+  
+  return translationEl;
+}
+
+function updateHoverContent(element, translation, settings) {
+  // Keep the TransKit icon
+  const icon = element.querySelector('.bt-hover-icon');
+  
+  element.innerHTML = ''; // Clear content
+  if (icon) element.appendChild(icon);
+  
+  // Append translation text
+  const textSpan = document.createElement('span');
+  textSpan.textContent = translation;
+  element.appendChild(textSpan);
+  
+  // Model Label removed as per user request
+}
+
+function applyHoverTranslation(element, translation, settings) {
+  console.log('[HoverTranslate] applyHoverTranslation called, mode:', settings.hoverTranslateMode);
+  if (element.dataset.btTranslated) {
+    console.log('[HoverTranslate] Element already translated');
+    return;
+  }
+  element.dataset.btTranslated = 'true';
+  
+  const mode = settings.hoverTranslateMode || 'inject';
+  
+  if (mode === 'replace') {
+    console.log('[HoverTranslate] Applying replace mode');
+    applyReplaceMode(element, translation);
+  } else {
+    console.log('[HoverTranslate] Applying inject mode');
+    applyInjectMode(element, translation, settings);
+  }
+  console.log('[HoverTranslate] Translation applied successfully');
+}
+
+function applyReplaceMode(element, translation) {
+  if (!element.dataset.btOriginal) {
+    element.dataset.btOriginal = element.textContent;
+  }
+  
+  replaceTextContent(element, translation);
+  element.classList.add('bt-hover-translated');
+}
+
+function applyInjectMode(element, translation, settings) {
+  // Create element of the same tag to mimic structure
+  const translationEl = document.createElement(element.tagName);
+  translationEl.className = 'bt-hover-translation';
+  
+  // Copy styles from original element to look like a clone
+  const computedStyle = window.getComputedStyle(element);
+  
+  // Copy text styles
+  translationEl.style.fontFamily = computedStyle.fontFamily;
+  translationEl.style.fontSize = settings.hoverInjectStyle?.fontSize || computedStyle.fontSize;
+  translationEl.style.fontWeight = computedStyle.fontWeight;
+  translationEl.style.fontStyle = computedStyle.fontStyle;
+  translationEl.style.lineHeight = computedStyle.lineHeight;
+  translationEl.style.textAlign = computedStyle.textAlign;
+  translationEl.style.letterSpacing = computedStyle.letterSpacing;
+  translationEl.style.color = settings.hoverInjectStyle?.textColor || computedStyle.color;
+  
+  // Copy layout styles
+  translationEl.style.padding = computedStyle.padding;
+  translationEl.style.margin = computedStyle.margin;
+  translationEl.style.marginTop = '4px'; // Add slight separation
+  translationEl.style.width = computedStyle.width !== 'auto' ? computedStyle.width : '100%';
+  translationEl.style.boxSizing = 'border-box';
+  translationEl.style.backgroundColor = settings.hoverInjectStyle?.backgroundColor || 'transparent';
+  
+  // Ensure block display for proper positioning below
+  translationEl.style.display = 'block';
+  
+  const style = settings.hoverInjectStyle || {};
+  
+  if (!style.showIcon) {
+    translationEl.classList.add('bt-hover-no-icon');
+  }
+  if (style.underline) {
+    translationEl.classList.add('bt-hover-underline');
+  }
+  
+  translationEl.textContent = translation;
+  translationEl.dataset.btInjected = 'true';
+  
+  // Ensure original element handles the insertion correctly
+  if (computedStyle.display === 'inline') {
+    element.style.display = 'inline-block';
+  }
+  
+  element.insertAdjacentElement('afterend', translationEl);
+  element.classList.add('bt-hover-original');
+}
+
+function replaceTextContent(element, newText) {
+  const walker = document.createTreeWalker(
+    element,
+    NodeFilter.SHOW_TEXT,
+    null,
+    false
+  );
+  
+  const textNodes = [];
+  while (walker.nextNode()) {
+    textNodes.push(walker.currentNode);
+  }
+  
+  if (textNodes.length > 0) {
+    textNodes[0].textContent = newText;
+    textNodes.slice(1).forEach(node => node.remove());
+  }
+}
+
+function clearAllHoverTranslations() {
+  document.querySelectorAll('.bt-hover-translation').forEach(el => el.remove());
+  
+  document.querySelectorAll('[data-bt-original]').forEach(el => {
+    replaceTextContent(el, el.dataset.btOriginal);
+    delete el.dataset.btOriginal;
+    delete el.dataset.btTranslated;
+    el.classList.remove('bt-hover-translated');
+  });
+  
+  document.querySelectorAll('[data-bt-translated]').forEach(el => {
+    delete el.dataset.btTranslated;
+    el.classList.remove('bt-hover-original');
+  });
+  
+  currentHoveredElement = null;
+}
+
+function isHoverTranslateDomain(settings) {
+  if (!settings.hoverTranslateEnabled) return false;
+  if (!settings.hoverTranslateDomains || settings.hoverTranslateDomains.length === 0) return false;
+  
+  const currentUrl = window.location.href;
+  return settings.hoverTranslateDomains.some(
+    d => d.enabled && currentUrl.includes(d.domain)
+  );
+}
+
+function applyHoverCustomStyles(style) {
+  const root = document.documentElement;
+  root.style.setProperty('--bt-hover-bg-color', style.backgroundColor || '#667eea');
+  root.style.setProperty('--bt-hover-text-color', style.textColor || '#ffffff');
+  root.style.setProperty('--bt-hover-font-size', style.fontSize || '0.95em');
+  root.style.setProperty('--bt-hover-show-icon', style.showIcon !== false ? 'inline' : 'none');
+}
+
+function registerHoverToggleShortcut() {
+  document.addEventListener('keydown', async (e) => {
+    const settings = await getSettings();
+    const shortcut = settings.hoverToggleShortcut || {
+      key: "O",
+      ctrl: true,
+      shift: true,
+      alt: false
+    };
+
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const modifierKey = isMac ? e.metaKey : e.ctrlKey;
+
+    const matches =
+      e.key.toUpperCase() === shortcut.key.toUpperCase() &&
+      modifierKey === shortcut.ctrl &&
+      e.shiftKey === shortcut.shift &&
+      e.altKey === shortcut.alt;
+
+    if (matches) {
+      e.preventDefault();
+      e.stopPropagation();
+      await toggleHoverDomainForCurrentUrl();
+    }
+  }, true);
+}
+
+async function toggleHoverDomainForCurrentUrl() {
+  try {
+    const settings = await getSettings();
+    const currentUrl = window.location.href;
+
+    const matchingDomainIndex = settings.hoverTranslateDomains.findIndex(
+      d => currentUrl.includes(d.domain)
+    );
+
+    if (matchingDomainIndex === -1) {
+      // Auto-add domain
+      const domain = extractDomainFromUrl(currentUrl);
+      
+      settings.hoverTranslateDomains.push({
+        domain: domain,
+        enabled: true
+      });
+      
+      await chrome.runtime.sendMessage({
+        type: "set-settings",
+        settings: settings
+      });
+      
+      showToastBottomRight(`✨ Hover translate enabled for ${domain}`);
+      return;
+    }
+
+    // Toggle enabled state
+    const domain = settings.hoverTranslateDomains[matchingDomainIndex];
+    domain.enabled = !domain.enabled;
+
+    await chrome.runtime.sendMessage({
+      type: "set-settings",
+      settings: settings
+    });
+
+    const status = domain.enabled
+      ? "✨ Hover translate enabled"
+      : "Hover translate disabled";
+
+    showToastBottomRight(`${status} for ${domain.domain}`);
+
+    if (!domain.enabled) {
+      clearAllHoverTranslations();
+    }
+  } catch (err) {
+    console.error("Toggle hover domain error:", err);
+    showToast("Error toggling hover domain");
+  }
+}
+

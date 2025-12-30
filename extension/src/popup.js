@@ -5,7 +5,7 @@ const enabledCheckbox = document.querySelector("#enabled");
 const settingsContainer = document.querySelector("#settings-container");
 const nativeSelect = document.querySelector("#native");
 const targetSelect = document.querySelector("#target");
-const timeoutInput = document.querySelector("#timeout");
+
 const preferNative = document.querySelector("#prefer-native");
 const confirmModal = document.querySelector("#confirm-modal");
 const saveBtn = document.querySelector("#save");
@@ -45,8 +45,32 @@ const systemPromptDisplay = document.querySelector("#system-prompt-display");
 const userCustomPrompt = document.querySelector("#user-custom-prompt");
 const promptCharCount = document.querySelector("#prompt-char-count");
 
+// Hover to Translate elements
+const hoverTranslateEnabled = document.getElementById('hover-translate-enabled');
+const hoverUniqueMode = document.getElementById('hover-unique-mode');
+const hoverSettings = document.getElementById('hover-settings');
+const hoverMode = document.getElementById('hover-mode');
+const hoverModifier = document.getElementById('hover-modifier');
+const hoverShortcutCtrl = document.getElementById('hover-shortcut-ctrl');
+const hoverShortcutShift = document.getElementById('hover-shortcut-shift');
+const hoverShortcutAlt = document.getElementById('hover-shortcut-alt');
+const hoverShortcutKey = document.getElementById('hover-shortcut-key');
+const hoverShortcutPreview = document.getElementById('hover-shortcut-preview');
+// const hoverBgColor = document.getElementById('hover-bg-color'); // Removed
+const hoverTextColor = document.getElementById('hover-text-color');
+const hoverFontSize = document.getElementById('hover-font-size');
+const hoverShowIcon = document.getElementById('hover-show-icon');
+const hoverUnderline = document.getElementById('hover-underline');
+const manageHoverDomains = document.getElementById('manage-hover-domains');
+const hoverDomainListSection = document.getElementById('hover-domain-list-section');
+const hoverDomainList = document.getElementById('hover-domain-list');
+const hoverDomainCount = document.getElementById('hover-domain-count');
+const newHoverDomain = document.getElementById('new-hover-domain');
+const addHoverDomain = document.getElementById('add-hover-domain');
+
 let currentAliases = {};
 let currentDomains = [];
+let currentHoverDomains = [];
 let providers = [];
 let activeProviderId = "builtin";
 let editingProviderId = null;
@@ -494,14 +518,13 @@ async function loadSettings() {
 
   if (res?.ok) {
     enabledCheckbox.checked = res.settings.enabled !== false;
-    nativeSelect.value = res.settings.nativeLanguageCode || "en";
-    targetSelect.value = res.settings.targetLanguageCode || "es";
-    timeoutInput.value = res.settings.dialogTimeout || 10;
+    nativeSelect.value = res.settings.nativeLanguageCode || "vi";
+    targetSelect.value = res.settings.targetLanguageCode || "en";
     preferNative.checked = res.settings.preferNativeAsSource !== false;
     confirmModal.checked = res.settings.showConfirmModal !== false;
     currentAliases = res.settings.aliases || {};
     
-    const lang = res.settings.interfaceLanguage || "en";
+    const lang = res.settings.interfaceLanguage || "vi";
     updateLangToggleUI(lang);
     i18n.setLanguage(lang);
     populateSelects();
@@ -544,12 +567,38 @@ async function loadSettings() {
     if (shortcutKeyInput) shortcutKeyInput.value = shortcut.key.toUpperCase();
     updateShortcutPreview();
 
+    // Load Hover Translate settings
+    hoverTranslateEnabled.checked = res.settings.hoverTranslateEnabled || false;
+    hoverUniqueMode.checked = res.settings.hoverUniqueMode !== false; // Default true
+    hoverSettings.hidden = !hoverTranslateEnabled.checked;
+    hoverMode.value = res.settings.hoverTranslateMode || 'inject';
+    hoverModifier.value = res.settings.hoverModifierKey || 'ctrl';
+
+    // Load hover toggle shortcut
+    const hoverShortcut = res.settings.hoverToggleShortcut || { key: 'H', ctrl: true, shift: true, alt: false };
+    hoverShortcutCtrl.checked = hoverShortcut.ctrl;
+    hoverShortcutShift.checked = hoverShortcut.shift;
+    hoverShortcutAlt.checked = hoverShortcut.alt;
+    hoverShortcutKey.value = hoverShortcut.key;
+    updateHoverShortcutPreview();
+
+    // Load style settings
+    const hoverStyle = res.settings.hoverInjectStyle || {};
+    // hoverBgColor.value = hoverStyle.backgroundColor || '#667eea'; // Removed
+    hoverTextColor.value = hoverStyle.textColor || '#ff0000';
+    hoverFontSize.value = hoverStyle.fontSize || '0.95em';
+    hoverShowIcon.checked = hoverStyle.showIcon !== false;
+    hoverUnderline.checked = hoverStyle.underline || false;
+
+    // Load hover domains
+    currentHoverDomains = res.settings.hoverTranslateDomains || [];
+    renderHoverDomainList(currentHoverDomains);
+
   } else {
     // Defaults
     enabledCheckbox.checked = true;
-    nativeSelect.value = "en";
-    targetSelect.value = "es";
-    timeoutInput.value = 10;
+    nativeSelect.value = "vi";
+    targetSelect.value = "en";
     preferNative.checked = true;
     confirmModal.checked = true;
     currentAliases = {};
@@ -594,9 +643,6 @@ async function loadSettings() {
 async function saveSettings() {
   const settings = {
     enabled: enabledCheckbox.checked,
-    nativeLanguageCode: nativeSelect.value,
-    targetLanguageCode: targetSelect.value,
-    dialogTimeout: parseInt(timeoutInput.value, 10) || 10,
     preferNativeAsSource: preferNative.checked,
     showConfirmModal: confirmModal.checked,
     aliases: currentAliases,
@@ -615,7 +661,26 @@ async function saveSettings() {
       ctrl: shortcutCtrlCheckbox?.checked || false,
       shift: shortcutShiftCheckbox?.checked || false,
       alt: shortcutAltCheckbox?.checked || false
-    }
+    },
+    // Hover Translate settings
+    hoverTranslateEnabled: hoverTranslateEnabled?.checked || false,
+    hoverUniqueMode: hoverUniqueMode?.checked !== false,
+    hoverTranslateMode: hoverMode?.value || 'inject',
+    hoverModifierKey: hoverModifier?.value || 'ctrl',
+    hoverToggleShortcut: {
+      key: hoverShortcutKey?.value.toUpperCase() || 'O',
+      ctrl: hoverShortcutCtrl?.checked || false,
+      shift: hoverShortcutShift?.checked || false,
+      alt: hoverShortcutAlt?.checked || false
+    },
+    hoverInjectStyle: {
+      // backgroundColor: hoverBgColor?.value || '#667eea', // Removed
+      textColor: hoverTextColor?.value || '#ff0000',
+      fontSize: hoverFontSize?.value || '0.95em',
+      showIcon: hoverShowIcon?.checked !== false,
+      underline: hoverUnderline?.checked || false
+    },
+    hoverTranslateDomains: currentHoverDomains || []
   };
 
   const res = await chrome.runtime.sendMessage({
@@ -650,7 +715,7 @@ enabledCheckbox.addEventListener("change", () => {
 
 nativeSelect.addEventListener("change", saveSettings);
 targetSelect.addEventListener("change", saveSettings);
-timeoutInput.addEventListener("change", saveSettings);
+
 preferNative.addEventListener("change", saveSettings);
 confirmModal.addEventListener("change", saveSettings);
 
@@ -769,6 +834,126 @@ if (userCustomPrompt) {
   userCustomPrompt.addEventListener("input", () => {
     updateCharCounter();
     saveSettings();
+  });
+}
+
+// Hover Translate Event Listeners
+if (hoverTranslateEnabled) {
+  hoverTranslateEnabled.addEventListener('change', () => {
+    hoverSettings.hidden = !hoverTranslateEnabled.checked;
+    saveSettings();
+  });
+}
+
+// Auto-save for other hover settings
+if (hoverUniqueMode) hoverUniqueMode.addEventListener('change', saveSettings);
+if (hoverShowIcon) hoverShowIcon.addEventListener('change', saveSettings);
+if (hoverUnderline) hoverUnderline.addEventListener('change', saveSettings);
+if (hoverFontSize) hoverFontSize.addEventListener('change', saveSettings);
+if (hoverTextColor) hoverTextColor.addEventListener('change', saveSettings);
+if (hoverMode) hoverMode.addEventListener('change', saveSettings);
+if (hoverModifier) hoverModifier.addEventListener('change', saveSettings);
+
+if (manageHoverDomains) {
+  manageHoverDomains.addEventListener('click', () => {
+    hoverDomainListSection.hidden = !hoverDomainListSection.hidden;
+  });
+}
+
+if (addHoverDomain) {
+  addHoverDomain.addEventListener('click', () => {
+    const domain = newHoverDomain.value.trim();
+    if (!domain) return;
+    
+    chrome.runtime.sendMessage({ type: 'get-settings' }, (res) => {
+      if (!res.ok) return;
+      const settings = res.settings;
+      
+      // Initialize array if undefined
+      if (!settings.hoverTranslateDomains) {
+        settings.hoverTranslateDomains = [];
+      }
+      
+      if (!settings.hoverTranslateDomains.find(d => d.domain === domain)) {
+        settings.hoverTranslateDomains.push({ domain, enabled: true });
+        currentHoverDomains = settings.hoverTranslateDomains;
+        chrome.runtime.sendMessage({ type: 'set-settings', settings }, () => {
+          renderHoverDomainList(settings.hoverTranslateDomains);
+          newHoverDomain.value = '';
+        });
+      }
+    });
+  });
+}
+
+if (hoverShortcutCtrl && hoverShortcutShift && hoverShortcutAlt && hoverShortcutKey) {
+  [hoverShortcutCtrl, hoverShortcutShift, hoverShortcutAlt, hoverShortcutKey].forEach(el => {
+    el.addEventListener('change', updateHoverShortcutPreview);
+    el.addEventListener('input', updateHoverShortcutPreview);
+  });
+}
+
+// Hover Translate Helper Functions
+function updateHoverShortcutPreview() {
+  if (!hoverShortcutPreview) return;
+  const parts = [];
+  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+  
+  if (hoverShortcutCtrl?.checked) parts.push(isMac ? 'Cmd' : 'Ctrl');
+  if (hoverShortcutShift?.checked) parts.push('Shift');
+  if (hoverShortcutAlt?.checked) parts.push('Alt');
+  parts.push(hoverShortcutKey?.value.toUpperCase() || 'H');
+  
+  hoverShortcutPreview.textContent = parts.join('+');
+}
+
+function renderHoverDomainList(domains) {
+  if (!hoverDomainList) return;
+  hoverDomainList.innerHTML = '';
+  if (hoverDomainCount) hoverDomainCount.textContent = domains.length;
+  
+  domains.forEach((d, index) => {
+    const item = document.createElement('div');
+    item.className = 'bt-domain-item';
+    item.innerHTML = `
+      <div class="bt-domain-info">
+        <span class="bt-domain-name">${d.domain}</span>
+      </div>
+      <div class="bt-domain-actions">
+        <label class="bt-domain-toggle">
+          <input type="checkbox" ${d.enabled ? 'checked' : ''} data-index="${index}" class="hover-domain-toggle">
+          <span>Active</span>
+        </label>
+        <button class="bt-button-icon remove-hover-domain" data-index="${index}">×</button>
+      </div>
+    `;
+    hoverDomainList.appendChild(item);
+  });
+  
+  document.querySelectorAll('.hover-domain-toggle').forEach(toggle => {
+    toggle.addEventListener('change', (e) => {
+      const index = parseInt(e.target.dataset.index);
+      chrome.runtime.sendMessage({ type: 'get-settings' }, (res) => {
+        const settings = res.settings;
+        settings.hoverTranslateDomains[index].enabled = e.target.checked;
+        currentHoverDomains = settings.hoverTranslateDomains;
+        chrome.runtime.sendMessage({ type: 'set-settings', settings });
+      });
+    });
+  });
+  
+  document.querySelectorAll('.remove-hover-domain').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const index = parseInt(e.target.dataset.index);
+      chrome.runtime.sendMessage({ type: 'get-settings' }, (res) => {
+        const settings = res.settings;
+        settings.hoverTranslateDomains.splice(index, 1);
+        currentHoverDomains = settings.hoverTranslateDomains;
+        chrome.runtime.sendMessage({ type: 'set-settings', settings }, () => {
+          renderHoverDomainList(settings.hoverTranslateDomains);
+        });
+      });
+    });
   });
 }
 

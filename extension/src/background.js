@@ -64,6 +64,25 @@ async function readSettings() {
         ctrl: true,
         shift: true,
         alt: false
+      },
+      // Hover to Translate settings
+      hoverTranslateEnabled: false,
+      hoverTranslateMode: "inject", // "inject" or "replace"
+      hoverTranslateDomains: [],
+      hoverModifierKey: "ctrl", // "ctrl", "shift", "alt"
+      hoverToggleShortcut: {
+        key: "O",
+        ctrl: true,
+        shift: true,
+        alt: false
+      },
+      // Style customization for hover inject mode
+      hoverInjectStyle: {
+        backgroundColor: "#667eea",
+        textColor: "#ffffff",
+        fontSize: "0.95em",
+        showIcon: true,
+        underline: false
       }
     }
   );

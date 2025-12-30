@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TransKit - Power Inline Translate Kit",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "description": "Brings instant, AI-powered translation directly to your input fields. No more switching tabs or copy-pasting—just type translate",
   "author": "@FernNguyen",
   "homepage_url": "https://transkit.app",
@@ -33,7 +33,11 @@
     {
       "matches": ["<all_urls>"],
       "js": ["src/content-script.js"],
-      "css": ["assets/styles/inline-suggestion.css", "assets/styles/selection.css"],
+      "css": [
+        "assets/styles/inline-suggestion.css",
+        "assets/styles/selection.css",
+        "assets/styles/hover-translate.css"
+      ],
       "run_at": "document_idle",
       "all_frames": true
     }

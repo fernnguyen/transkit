@@ -57,19 +57,26 @@
             </div>
           </div>
 
-          <div class="bt-field">
-            <label for="timeout" data-i18n="popup.revertTimeout">Revert Timeout (seconds)</label>
-            <input type="number" id="timeout" class="bt-input" min="1" max="60" />
+
+
+          <div class="bt-field-row" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <label class="bt-switch">
+                <input type="checkbox" id="prefer-native" />
+                <span class="slider round"></span>
+              </label>
+              <label for="prefer-native" data-i18n="popup.preferNative">Prefer Native as Source</label>
+            </div>
           </div>
 
-          <div class="bt-field-row">
-            <input type="checkbox" id="prefer-native" />
-            <label for="prefer-native" data-i18n="popup.preferNative">Prefer Native as Source</label>
-          </div>
-
-          <div class="bt-field-row">
-            <input type="checkbox" id="confirm-modal" />
-            <label for="confirm-modal" data-i18n="popup.showConfirmModal">Show Confirm Modal</label>
+          <div class="bt-field-row" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <label class="bt-switch">
+                <input type="checkbox" id="confirm-modal" />
+                <span class="slider round"></span>
+              </label>
+              <label for="confirm-modal" data-i18n="popup.showConfirmModal">Show Confirm Modal</label>
+            </div>
           </div>
 
           <div class="bt-divider"></div>
@@ -83,13 +90,141 @@
             </div>
             <div id="alias-list" class="bt-alias-list"></div>
           </div>
+
+          <div class="bt-divider"></div>
+
+          <!-- Hover to Translate Section -->
+          <div class="bt-field-row" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <label class="bt-switch">
+                <input type="checkbox" id="hover-translate-enabled" />
+                <span class="slider round"></span>
+              </label>
+              <label for="hover-translate-enabled" data-i18n="popup.enableHover">Enable Hover to Translate</label>
+            </div>
+          </div>
+
+          <div id="hover-settings" class="bt-hover-settings" hidden>
+            <div class="bt-field">
+              <label for="hover-mode" data-i18n="popup.hoverMode">Translation Mode</label>
+              <select id="hover-mode" class="bt-input">
+                <option value="inject" data-i18n="popup.hoverModeInject">Inject Below (Recommended)</option>
+                <option value="replace" data-i18n="popup.hoverModeReplace">Replace Original</option>
+              </select>
+              <small style="color: #666;" data-i18n="popup.hoverModeHint">Inject adds translation below. Replace swaps text.</small>
+            </div>
+
+            <div class="bt-field-row" style="justify-content: space-between;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <label class="bt-switch">
+                  <input type="checkbox" id="hover-unique-mode" checked />
+                  <span class="slider round"></span>
+                </label>
+                <label for="hover-unique-mode" data-i18n="popup.uniqueMode">Unique Mode</label>
+              </div>
+            </div>
+
+            <div class="bt-field">
+              <label for="hover-modifier" data-i18n="popup.modifierKey">Modifier Key</label>
+              <select id="hover-modifier" class="bt-input">
+                <option value="ctrl">Ctrl</option>
+                <option value="shift">Shift</option>
+                <option value="alt">Alt</option>
+              </select>
+            </div>
+
+            <div class="bt-field">
+              <label data-i18n="popup.toggleShortcut">Toggle Shortcut</label>
+              <div class="bt-shortcut-compact">
+                <div class="bt-shortcut-modifiers">
+                  <label>
+                    <input type="checkbox" id="hover-shortcut-ctrl" checked />
+                    <span data-i18n="popup.shortcutCtrl">Ctrl/Cmd</span>
+                  </label>
+                  <label>
+                    <input type="checkbox" id="hover-shortcut-shift" checked />
+                    <span data-i18n="popup.shortcutShift">Shift</span>
+                  </label>
+                  <label>
+                    <input type="checkbox" id="hover-shortcut-alt" />
+                    <span data-i18n="popup.shortcutAlt">Alt</span>
+                  </label>
+                  <span style="margin: 0 8px; color: #888;">+</span>
+                  <input type="text" id="hover-shortcut-key" class="bt-input" maxlength="1" value="O" style="width: 50px; text-align: center; text-transform: uppercase;" />
+                </div>
+                <div class="bt-shortcut-preview">
+                  <small id="hover-shortcut-preview" style="color: #888;">Ctrl+Shift+O (Cmd+Shift+O on Mac)</small>
+                </div>
+              </div>
+            </div>
+
+            <div class="bt-field">
+              <label data-i18n="popup.injectStyle">Inject Style</label>
+              <div class="bt-hover-style-config">
+                <div class="bt-row">
+                  <!-- Text Color and Font Size side-by-side -->
+                  <div class="bt-field">
+                    <label for="hover-text-color" data-i18n="popup.textColor">Text Color</label>
+                    <input type="color" id="hover-text-color" value="#ff0000" />
+                  </div>
+                  <div class="bt-field">
+                    <label for="hover-font-size" data-i18n="popup.fontSize">Font Size</label>
+                    <select id="hover-font-size" class="bt-input">
+                      <option value="0.85em" data-i18n="popup.fontSizeSmall">Small</option>
+                      <option value="0.95em" selected data-i18n="popup.fontSizeNormal">Normal</option>
+                      <option value="1em" data-i18n="popup.fontSizeLarge">Large</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div class="bt-field-row" style="justify-content: space-between; margin-top: 12px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <label class="bt-switch">
+                      <input type="checkbox" id="hover-show-icon" checked />
+                      <span class="slider round"></span>
+                    </label>
+                    <label for="hover-show-icon" data-i18n="popup.showIcon">Show Translation Icon</label>
+                  </div>
+                </div>
+                
+                <div class="bt-field-row" style="justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <label class="bt-switch">
+                      <input type="checkbox" id="hover-underline" />
+                      <span class="slider round"></span>
+                    </label>
+                    <label for="hover-underline" data-i18n="popup.underline">Underline Translation</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bt-field">
+              <label data-i18n="popup.activeDomains">Active Domains</label>
+              <button id="manage-hover-domains" class="bt-button bt-button-outline" style="width: 100%;">
+                <span data-i18n="popup.manageDomains">Manage Domains</span> (<span id="hover-domain-count">0</span>)
+              </button>
+              <div id="hover-domain-list-section" class="bt-domain-list-section" hidden>
+                <div id="hover-domain-list" class="bt-domain-list"></div>
+                <div class="bt-domain-input-group">
+                  <input type="text" id="new-hover-domain" placeholder="discord.com" />
+                  <button id="add-hover-domain" class="bt-button-small">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Instant Tab Content -->
         <div id="tab-instant" class="bt-tab-content">
-          <div class="bt-field-row">
-            <input type="checkbox" id="instant-translate-enabled" />
-            <label for="instant-translate-enabled" data-i18n="popup.enableInstant">Enable Instant Translate for specific domains</label>
+          <div class="bt-field-row" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <label class="bt-switch">
+                <input type="checkbox" id="instant-translate-enabled" />
+                <span class="slider round"></span>
+              </label>
+              <label for="instant-translate-enabled" data-i18n="popup.enableInstant">Enable Instant Translate for specific domains</label>
+            </div>
           </div>
 
           <div id="instant-settings" class="bt-instant-settings" hidden>
