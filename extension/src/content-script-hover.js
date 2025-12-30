@@ -76,6 +76,16 @@ function findTranslatableElement(target) {
   const maxDepth = 5;
   
   while (element && depth < maxDepth) {
+    // Skip translation elements themselves
+    if (element.classList?.contains('bt-hover-translation') || 
+        element.classList?.contains('bt-hover-original') ||
+        element.dataset?.btTranslated ||
+        element.dataset?.btInjected) {
+      element = element.parentElement;
+      depth++;
+      continue;
+    }
+    
     const text = element.textContent?.trim();
     
     if (text && text.length > 10 && text.length < 1000) {
@@ -102,7 +112,7 @@ async function handleHoverTranslate(element, settings) {
   const text = element.textContent?.trim();
   if (!text) return;
   
-  const cacheKey = `${text}-${settings.targetLanguageCode}`;
+  const cacheKey = `${text}-${settings.nativeLanguageCode}`; // Cache by native lang (target of hover translate)
   if (hoverTranslateCache.has(cacheKey)) {
     applyHoverTranslation(element, hoverTranslateCache.get(cacheKey), settings);
     return;
@@ -112,43 +122,53 @@ async function handleHoverTranslate(element, settings) {
     const res = await requestTranslation({
       text: text,
       nativeLanguageCode: settings.nativeLanguageCode || "en",
-      targetLanguage: settings.targetLanguageCode || "vi",
-      preferNativeAsSource: settings.preferNativeAsSource !== false
+      targetLanguage: settings.nativeLanguageCode || "vi", // Translate TO native language
+      sourceLanguage: settings.targetLanguageCode || "en", // FROM target language (e.g., English web content)
+      useAutoDetect: false // Fixed Target→Native for hover
     });
     
     if (res?.ok && res.result?.translation) {
       const translation = res.result.translation;
       hoverTranslateCache.set(cacheKey, translation);
       applyHoverTranslation(element, translation, settings);
+    } else {
+      // Show error as translation
+      applyHoverTranslation(element, `❌ ${res?.error || 'Translation failed'}`, settings, true);
     }
   } catch (err) {
     console.error('[HoverTranslate] Error:', err);
+    applyHoverTranslation(element, `❌ ${err.message || 'Error'}`, settings, true);
   }
 }
 
-function applyHoverTranslation(element, translation, settings) {
+function applyHoverTranslation(element, translation, settings, isError = false) {
   if (element.dataset.btTranslated) return;
   element.dataset.btTranslated = 'true';
   
   const mode = settings.hoverTranslateMode || 'inject';
   
   if (mode === 'replace') {
-    applyReplaceMode(element, translation);
+    applyReplaceMode(element, translation, isError);
   } else {
-    applyInjectMode(element, translation, settings);
+    applyInjectMode(element, translation, settings, isError);
   }
 }
 
-function applyReplaceMode(element, translation) {
+function applyReplaceMode(element, translation, isError = false) {
   if (!element.dataset.btOriginal) {
     element.dataset.btOriginal = element.textContent;
   }
   
   replaceTextContent(element, translation);
   element.classList.add('bt-hover-translated');
+  
+  if (isError) {
+    element.style.color = '#dc3545'; // text-danger red
+    element.style.fontWeight = 'bold';
+  }
 }
 
-function applyInjectMode(element, translation, settings) {
+function applyInjectMode(element, translation, settings, isError = false) {
   const translationEl = document.createElement('div');
   translationEl.className = 'bt-hover-translation';
   const style = settings.hoverInjectStyle || {};
@@ -162,6 +182,12 @@ function applyInjectMode(element, translation, settings) {
   
   translationEl.textContent = translation;
   translationEl.dataset.btInjected = 'true';
+  
+  // Apply error styling if needed
+  if (isError) {
+    translationEl.style.color = '#dc3545'; // text-danger red
+    translationEl.style.fontWeight = 'bold';
+  }
   
   element.style.position = 'relative';
   element.insertAdjacentElement('afterend', translationEl);
@@ -217,7 +243,7 @@ function isHoverTranslateDomain(settings) {
 function applyHoverCustomStyles(style) {
   const root = document.documentElement;
   root.style.setProperty('--bt-hover-bg-color', style.backgroundColor || '#667eea');
-  root.style.setProperty('--bt-hover-text-color', style.textColor || '#ffffff');
+  root.style.setProperty('--bt-hover-text-color', style.textColor || '#0c69e4');
   root.style.setProperty('--bt-hover-font-size', style.fontSize || '0.95em');
   root.style.setProperty('--bt-hover-show-icon', style.showIcon !== false ? 'inline' : 'none');
 }

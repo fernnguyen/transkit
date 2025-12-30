@@ -6,7 +6,7 @@ const settingsContainer = document.querySelector("#settings-container");
 const nativeSelect = document.querySelector("#native");
 const targetSelect = document.querySelector("#target");
 
-const preferNative = document.querySelector("#prefer-native");
+const autoDetect = document.querySelector("#auto-detect");
 const confirmModal = document.querySelector("#confirm-modal");
 const saveBtn = document.querySelector("#save");
 const aliasListEl = document.querySelector("#alias-list");
@@ -520,7 +520,19 @@ async function loadSettings() {
     enabledCheckbox.checked = res.settings.enabled !== false;
     nativeSelect.value = res.settings.nativeLanguageCode || "vi";
     targetSelect.value = res.settings.targetLanguageCode || "en";
-    preferNative.checked = res.settings.preferNativeAsSource !== false;
+    
+    // Migration: Convert old preferNativeAsSource to new useAutoDetect (reversed logic)
+    // Old true (prefer native) → New false (fixed direction)
+    // Old false (auto-detect) → New true (auto-detect)
+    const oldValue = res.settings.preferNativeAsSource;
+    const newValue = res.settings.useAutoDetect;
+    if (newValue === undefined && oldValue !== undefined) {
+      // Migrate from old setting (reverse logic)
+      autoDetect.checked = !oldValue;
+    } else {
+      autoDetect.checked = newValue === true;
+    }
+    
     confirmModal.checked = res.settings.showConfirmModal !== false;
     currentAliases = res.settings.aliases || {};
     
@@ -585,7 +597,7 @@ async function loadSettings() {
     // Load style settings
     const hoverStyle = res.settings.hoverInjectStyle || {};
     // hoverBgColor.value = hoverStyle.backgroundColor || '#667eea'; // Removed
-    hoverTextColor.value = hoverStyle.textColor || '#ff0000';
+    hoverTextColor.value = hoverStyle.textColor || '#0c69e4';
     hoverFontSize.value = hoverStyle.fontSize || '0.95em';
     hoverShowIcon.checked = hoverStyle.showIcon !== false;
     hoverUnderline.checked = hoverStyle.underline || false;
@@ -599,7 +611,7 @@ async function loadSettings() {
     enabledCheckbox.checked = true;
     nativeSelect.value = "vi";
     targetSelect.value = "en";
-    preferNative.checked = true;
+    autoDetect.checked = false; // Default: fixed direction
     confirmModal.checked = true;
     currentAliases = {};
     
@@ -643,7 +655,9 @@ async function loadSettings() {
 async function saveSettings() {
   const settings = {
     enabled: enabledCheckbox.checked,
-    preferNativeAsSource: preferNative.checked,
+    nativeLanguageCode: nativeSelect.value,
+    targetLanguageCode: targetSelect.value,
+    useAutoDetect: autoDetect.checked,
     showConfirmModal: confirmModal.checked,
     aliases: currentAliases,
     interfaceLanguage: document.querySelector("#lang-toggle .active").getAttribute("data-lang"),
@@ -675,7 +689,7 @@ async function saveSettings() {
     },
     hoverInjectStyle: {
       // backgroundColor: hoverBgColor?.value || '#667eea', // Removed
-      textColor: hoverTextColor?.value || '#ff0000',
+      textColor: hoverTextColor?.value || '#0c69e4',
       fontSize: hoverFontSize?.value || '0.95em',
       showIcon: hoverShowIcon?.checked !== false,
       underline: hoverUnderline?.checked || false
@@ -716,7 +730,7 @@ enabledCheckbox.addEventListener("change", () => {
 nativeSelect.addEventListener("change", saveSettings);
 targetSelect.addEventListener("change", saveSettings);
 
-preferNative.addEventListener("change", saveSettings);
+autoDetect.addEventListener("change", saveSettings);
 confirmModal.addEventListener("change", saveSettings);
 
 const langToggle = document.querySelector("#lang-toggle");

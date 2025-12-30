@@ -151,7 +151,7 @@ async function getSettings() {
       enabled: false,
       nativeLanguageCode: "vi",
       targetLanguageCode: "en",
-      preferNativeAsSource: true,
+      useAutoDetect: false,
       showConfirmModal: true,
       dialogTimeout: 10,
       aliases: {},
@@ -171,7 +171,7 @@ async function getSettings() {
     enabled: true,
     nativeLanguageCode: "vi",
     targetLanguageCode: "en",
-    preferNativeAsSource: true,
+    useAutoDetect: false,
     showConfirmModal: true,
     dialogTimeout: 10,
     aliases: {},
@@ -339,7 +339,7 @@ async function handleAutoTranslation(element, parsed) {
           text: cleanSourceValue,
           nativeLanguageCode: settings.nativeLanguageCode || "en",
           targetLanguage: targetCode,
-          preferNativeAsSource: settings.preferNativeAsSource !== false
+          useAutoDetect: settings.useAutoDetect === true
         });
       } catch (e) {
         showToast(e.message || i18n.t("toast.translationFailed"));
@@ -366,7 +366,7 @@ async function handleAutoTranslation(element, parsed) {
         text: cleanSourceValue,
         nativeLanguageCode: settings.nativeLanguageCode || "en",
         targetLanguage: targetCode,
-        preferNativeAsSource: settings.preferNativeAsSource !== false
+        useAutoDetect: settings.useAutoDetect === true
       });
     } catch (e) {
       showToast(e.message || i18n.t("toast.translationFailed"));
@@ -826,8 +826,9 @@ async function handleInstantTranslate(element) {
       const res = await requestTranslation({
         text: freshText,
         nativeLanguageCode: settings.nativeLanguageCode || "en",
-        targetLanguage: settings.targetLanguageCode || "es",
-        preferNativeAsSource: settings.preferNativeAsSource !== false
+        targetLanguage: settings.targetLanguageCode || "en",
+        sourceLanguage: settings.nativeLanguageCode || "en", // Always translate from native language
+        useAutoDetect: false // Never auto-detect for instant (always Native→Target)
       });
       
       if (res?.ok && res.result?.translation) {
@@ -843,9 +844,13 @@ async function handleInstantTranslate(element) {
             reTranslateSuggestion(element, text, e.target.value, settings);
           });
         }
+      } else {
+        // Show error toast when translation fails
+        showToast(res?.error || i18n.t("toast.translationFailed"));
       }
     } catch (err) {
       console.error("Instant translate error:", err);
+      showToast(i18n.t("toast.translationFailed"));
     }
   }, settings.instantDelay || 3000);
 }
@@ -864,7 +869,7 @@ async function reTranslateSuggestion(element, text, providerId, settings) {
       text: text,
       nativeLanguageCode: settings.nativeLanguageCode || "en",
       targetLanguage: settings.targetLanguageCode || "es",
-      preferNativeAsSource: settings.preferNativeAsSource !== false,
+      useAutoDetect: settings.useAutoDetect === true,
       providerId: providerId
     });
     
@@ -1344,12 +1349,21 @@ async function showTranslationPopup(selectionRect, text, iconPosition) {
   
   let defaultSource, defaultTarget;
   
-  if (settings.preferNativeAsSource !== false) {
+  if (!settings.useAutoDetect) { // Fixed direction (Mirror Logic)
     defaultSource = targetLang;
     defaultTarget = nativeLang;
   } else {
+    // Auto-detect mode
     defaultSource = 'auto';
     defaultTarget = targetLang;
+  }
+
+  // Override with last used selection languages if available
+  if (settings.selectionLastSource) {
+    defaultSource = settings.selectionLastSource;
+  }
+  if (settings.selectionLastTarget) {
+    defaultTarget = settings.selectionLastTarget;
   }
   
   // Populate selectors
@@ -1368,6 +1382,13 @@ async function showTranslationPopup(selectionRect, text, iconPosition) {
     const providerSelect = popup.querySelector('.bt-selection-provider-select');
     const providerId = providerSelect ? providerSelect.value : null;
     const targetLang = popup.querySelector('.bt-selection-target-select').value;
+    
+    // Save preference
+    chrome.runtime.sendMessage({ 
+      type: 'set-settings', 
+      settings: { ...settings, selectionLastSource: e.target.value } 
+    });
+
     translateSelectionWithSource(text, e.target.value, popup, providerId, targetLang);
   });
 
@@ -1375,6 +1396,14 @@ async function showTranslationPopup(selectionRect, text, iconPosition) {
     const providerSelect = popup.querySelector('.bt-selection-provider-select');
     const providerId = providerSelect ? providerSelect.value : null;
     const sourceLang = popup.querySelector('.bt-selection-source-select').value;
+
+    // Save preference
+    console.log('Saving selectionLastTarget:', e.target.value);
+    chrome.runtime.sendMessage({ 
+      type: 'set-settings', 
+      settings: { ...settings, selectionLastTarget: e.target.value } 
+    });
+
     translateSelectionWithSource(text, sourceLang, popup, providerId, e.target.value);
   });
 
@@ -1427,13 +1456,20 @@ async function translateSelectionWithSource(text, sourceLang, popup, providerId 
   translatedDiv.textContent = i18n.t("dialog.translating");
   translatedDiv.classList.add('bt-loading-text');
   
+  // If source and target are the same, return original text immediately
+  if (sourceLang !== 'auto' && sourceLang === targetLang) {
+    translatedDiv.textContent = text;
+    translatedDiv.classList.remove('bt-loading-text');
+    return;
+  }
+  
   try {
     const res = await requestTranslation({
       text: text,
       nativeLanguageCode: nativeLang,
       targetLanguage: targetLang,
       sourceLanguage: sourceLang, // Pass explicit source language
-      preferNativeAsSource: sourceLang === 'auto' ? false : settings.preferNativeAsSource,
+      useAutoDetect: sourceLang === 'auto' ? true : (settings.useAutoDetect === true),
       providerId: providerId // Pass provider override
     });
     
@@ -1441,7 +1477,9 @@ async function translateSelectionWithSource(text, sourceLang, popup, providerId 
       translatedDiv.textContent = res.result.translation;
       translatedDiv.classList.remove('bt-loading-text');
     } else {
-      translatedDiv.textContent = i18n.t("toast.translationFailed");
+      // Show actual error message from background/provider
+      translatedDiv.textContent = res?.error || i18n.t("toast.translationFailed");
+      translatedDiv.classList.remove('bt-loading-text');
     }
   } catch (err) {
     translatedDiv.textContent = 'Error: ' + err.message;
@@ -1864,7 +1902,7 @@ async function handleHoverTranslate(element, settings) {
   // Create placeholder immediately
   const placeholder = createHoverPlaceholder(element, settings);
   
-  const cacheKey = `${text}-${settings.targetLanguageCode}`;
+  const cacheKey = `${text}-${settings.nativeLanguageCode}`; // Cache by native lang (target of hover translate)
   if (hoverTranslateCache.has(cacheKey)) {
 
     updateHoverContent(placeholder, hoverTranslateCache.get(cacheKey), settings);
@@ -1876,8 +1914,9 @@ async function handleHoverTranslate(element, settings) {
     const res = await requestTranslation({
       text: text,
       nativeLanguageCode: settings.nativeLanguageCode || "en",
-      targetLanguage: settings.targetLanguageCode || "vi",
-      preferNativeAsSource: settings.preferNativeAsSource !== false
+      targetLanguage: settings.nativeLanguageCode || "vi", // Translate TO native language
+      sourceLanguage: settings.targetLanguageCode || "en", // FROM target language (e.g., English web content)
+      useAutoDetect: false // Fixed Target→Native for hover
     });
     
 
@@ -1887,12 +1926,12 @@ async function handleHoverTranslate(element, settings) {
       hoverTranslateCache.set(cacheKey, translation);
       updateHoverContent(placeholder, translation, settings);
     } else {
-
-      placeholder.remove(); // Remove on error
+      // Show error inline instead of removing
+      updateHoverContent(placeholder, `❌ ${res?.error || 'Translation failed'}`, settings, true);
     }
   } catch (err) {
-
-    placeholder.remove(); // Remove on error
+    // Show error inline instead of removing
+    updateHoverContent(placeholder, `❌ ${err.message || 'Error'}`, settings, true);
   }
 }
 
@@ -1972,7 +2011,7 @@ function createHoverPlaceholder(element, settings) {
   return translationEl;
 }
 
-function updateHoverContent(element, translation, settings) {
+function updateHoverContent(element, translation, settings, isError = false) {
   // Keep the TransKit icon
   const icon = element.querySelector('.bt-hover-icon');
   
@@ -1983,6 +2022,12 @@ function updateHoverContent(element, translation, settings) {
   const textSpan = document.createElement('span');
   textSpan.textContent = translation;
   element.appendChild(textSpan);
+  
+  // Apply error styling if needed
+  if (isError) {
+    element.style.color = '#dc3545'; // text-danger red
+    element.style.fontWeight = 'bold';
+  }
   
   // Model Label removed as per user request
 }

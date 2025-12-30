@@ -27,7 +27,7 @@ async function readSettings() {
       enabled: true,
       nativeLanguageCode: "vi",
       targetLanguageCode: "en",
-      preferNativeAsSource: true,
+      useAutoDetect: false, // Default to fixed direction (Target→Native)
       showConfirmModal: true,
       dialogTimeout: 10,
       aliases: {
@@ -79,11 +79,14 @@ async function readSettings() {
       // Style customization for hover inject mode
       hoverInjectStyle: {
         backgroundColor: "#667eea",
-        textColor: "#ffffff",
+        textColor: "#0c69e4",
         fontSize: "0.95em",
         showIcon: true,
         underline: false
-      }
+      },
+      // Last used languages in Selection Popup
+      selectionLastSource: null,
+      selectionLastTarget: null
     }
   );
 }

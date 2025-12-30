@@ -63,7 +63,7 @@ async function runTranslation(
   text,
   requestedSource,
   requestedTarget,
-  preferNativeAsSource
+  useAutoDetect
 ) {
   const target = normalizeLanguageToCode(requestedTarget);
 
@@ -122,21 +122,22 @@ async function runTranslation(
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "offscreen-translate") {
-    const { text, nativeLanguageCode, targetLanguage, preferNativeAsSource, sourceLanguage } =
+    const { text, nativeLanguageCode, targetLanguage, useAutoDetect, sourceLanguage } =
       message.payload || {};
 
     // If sourceLanguage is 'auto', we want detection. 
     // If it's a specific code, use it.
-    // Otherwise fallback to nativeLanguageCode only if preferNativeAsSource is true.
+    // If useAutoDetect=true, use null for auto-detection.
+    // If useAutoDetect=false, use nativeLanguageCode for fixed direction.
     const requestedSource = (sourceLanguage && sourceLanguage !== 'auto') 
       ? sourceLanguage 
-      : (preferNativeAsSource ? nativeLanguageCode : null);
+      : (useAutoDetect ? null : nativeLanguageCode);
 
     runTranslation(
       text,
       requestedSource,
       targetLanguage,
-      preferNativeAsSource
+      useAutoDetect
     )
       .then((r) => sendResponse(r))
       .catch((err) =>
