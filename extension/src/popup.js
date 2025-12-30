@@ -113,6 +113,15 @@ function translateUI() {
   }
 }
 
+// Display version in header
+function displayVersion() {
+  const manifest = chrome.runtime.getManifest();
+  const versionEl = document.getElementById('version-display');
+  if (versionEl && manifest.version) {
+    versionEl.textContent = `v${manifest.version}`;
+  }
+}
+
 function populateSelects() {
   const currentNative = nativeSelect.value;
   const currentTarget = targetSelect.value;
@@ -972,3 +981,4 @@ function renderHoverDomainList(domains) {
 }
 
 loadSettings();
+displayVersion();
