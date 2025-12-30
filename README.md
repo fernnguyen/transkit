@@ -8,18 +8,28 @@
 ## Features
 
 - **Instant Translation**: Type `!!<lang>` or `!!t` after your text to translate instantly
+- **Multiple AI Providers**: Choose from Chrome Built-in AI, Google Gemini, OpenAI, Groq, Ollama (local), or custom endpoints
+- **Custom Prompts**: Tailor translation behavior for technical, casual, or medical terminology
 - **Instant Domain Mode**: Auto-translate on specific domains (chat apps, AI assistants) with inline suggestions
+- **Quick Toggle**: Press `Ctrl+Shift+I` to enable/disable instant mode (auto-adds domain if not in list)
 - **Instant Label Indicator**: Visual badge above input fields when instant mode is active
 - **Select-to-Translate**: Highlight text to translate with a draggable, feature-rich popup
 - **Smart Language Detection**: Automatically detects source language
 - **Customizable Aliases**: Create shortcuts for your most-used languages
 - **Non-blocking UI**: Continue working while translations process
-- **Keyboard Shortcuts**: Quick actions for translation and domain toggling
-- **Privacy-First**: All processing happens locally using Chrome's built-in AI
+- **Privacy-First**: Default to Chrome's built-in AI for offline, private translation
 
 ## Installation
 
-Currently, TransKit is available for installation via "Load Unpacked" for developers and early adopters.
+### Option 1: Chrome Web Store (Recommended)
+
+**[Install from Chrome Web Store](https://chromewebstore.google.com/detail/transkit-power-inline-tra/alklecnckbdobhekgihddbpnggjkjnlj)**
+
+One-click installation with automatic updates.
+
+### Option 2: Manual Installation (Developers)
+
+For developers and early adopters who want to run from source:
 
 1.  **Clone the repository**:
     ```bash
@@ -30,10 +40,10 @@ Currently, TransKit is available for installation via "Load Unpacked" for develo
 3.  **Enable Developer Mode**:
     - Toggle the "Developer mode" switch in the top right corner.
 4.  **Load Unpacked**:
-    - Click "Load unpacked" and select the directory where you cloned the repository.
+    - Click "Load unpacked" and select the `extension` directory from the cloned repository.
 
 > [!IMPORTANT]
-> This extension relies on Chrome's built-in AI APIs (`window.ai`). Ensure you are using a compatible version of Chrome (Canary or Dev channel may be required) and have enabled the necessary flags for "Prompt API for Gemini Nano" and "Language Detection API".
+> This extension works best with Chrome's built-in AI APIs (`window.ai`). For the default provider, ensure you are using Chrome 131+ and have enabled the necessary flags for "Prompt API for Gemini Nano" and "Language Detection API". Alternatively, configure a different AI provider (Gemini, OpenAI, Groq, Ollama, etc.) in the extension settings.
 
 ## Usage
 
@@ -158,10 +168,10 @@ Open the extension popup to customize:
 5. **Test it**: Type `Hello !!vi` in any input field!
 
 **Why Ollama?**
-- ✅ 100% Privacy - Everything runs locally
-- ✅ Free - No API costs
-- ✅ Offline - Works without internet
-- ✅ Fast - Models like `qwen2.5:1.5b` respond in milliseconds
+- 100% Privacy - Everything runs locally
+- Free - No API costs
+- Offline - Works without internet
+- Fast - Models like `qwen2.5:1.5b` respond in milliseconds
 
 ### v1.1.1
 - **New**: Added `Ctrl+Shift+I` (Cmd on Mac) shortcut to quickly toggle Instant Translate for the current domain.
