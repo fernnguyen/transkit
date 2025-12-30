@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "TransKit – Power Inline Translate Kit",
+  "name": "TransKit - Power Inline Translate Kit",
   "version": "1.1.1",
-  "description": "Translate inline, domain-aware, offline-first. No tracking. Open source.",
+  "description": "Brings instant, AI-powered translation directly to your input fields. No more switching tabs or copy-pasting—just type translate",
   "author": "@FernNguyen",
   "homepage_url": "https://transkit.app",
   "icons": {

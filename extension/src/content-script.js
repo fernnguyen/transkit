@@ -11,6 +11,7 @@ let instantTimer = null;
 let currentSuggestion = null;
 let justAppliedTranslation = false;
 let currentKeyHandler = null; // Track active keyboard handler
+let isIMEComposing = false; // Track if IME composition is active
 
 // Select-to-translate state
 let selectionIcon = null;
@@ -680,7 +681,7 @@ function setupSuggestionKeyHandlers(element, suggestion) {
       // Prevent multiple calls
       if (isApplying) return false;
 
-      // Apply translation IMMEDIATELY and synchronously
+      // Apply translation (async, but we don't await in event handler)
       applyTranslation();
       return false;
     }
@@ -702,10 +703,13 @@ function setupSuggestionKeyHandlers(element, suggestion) {
     }
   };
 
-  const applyTranslation = () => {
+  const applyTranslation = async () => {
     // Prevent re-entry
     if (isApplying) return;
     isApplying = true;
+
+    // Commit IME composition before applying translation and wait for completion
+    await commitIMEComposition(element);
 
     // Cleanup FIRST to prevent any interference
     window.removeEventListener("keydown", handleKey, true);
@@ -755,6 +759,25 @@ function setupSuggestionKeyHandlers(element, suggestion) {
   document.addEventListener("keyup", handleKey, true);
 }
 
+// Commit IME composition by blur/focus
+// This is needed for macOS IME (Vietnamese, Chinese, Japanese, etc.)
+// to ensure the underline is removed before showing the translation popup
+async function commitIMEComposition(element) {
+  if (!isIMEComposing) return;
+
+  try {
+    // Blur triggers browser to fire compositionend event and commit IME
+    element.blur();
+    await new Promise(resolve => setTimeout(resolve, 10));
+
+    // Re-focus to keep input active
+    element.focus();
+    await new Promise(resolve => setTimeout(resolve, 50));
+  } catch (err) {
+    console.error("Error committing IME composition:", err);
+  }
+}
+
 async function handleInstantTranslate(element) {
   // Skip if we just applied a translation
   if (justAppliedTranslation) return;
@@ -787,13 +810,19 @@ async function handleInstantTranslate(element) {
   // Start new timer
   instantTimer = setTimeout(async () => {
     try {
+      // Commit IME composition before translation
+      await commitIMEComposition(element);
+
+      // Get fresh text after IME composition is committed
+      const freshText = element.value?.trim() || element.innerText?.trim();
+
       // Only show loading for non-builtin models
       if (settings.activeProviderId !== "builtin") {
         showToast(i18n.t("toast.translating"));
       }
-      
+
       const res = await requestTranslation({
-        text: text,
+        text: freshText,
         nativeLanguageCode: settings.nativeLanguageCode || "en",
         targetLanguage: settings.targetLanguageCode || "es",
         preferNativeAsSource: settings.preferNativeAsSource !== false
@@ -859,15 +888,24 @@ function registerInstantMode() {
   document.addEventListener('input', async (e) => {
     const element = getActiveEditableElement();
     if (!element) return;
-    
+
     // Don't interfere with manual mode
     if (isTranslating) return;
-    
+
     // Check if manual command is being typed
     const text = element.value?.trim() || element.innerText?.trim();
     if (TRANSLATION_COMMAND_PATTERN.test(text)) return;
-    
+
     handleInstantTranslate(element);
+  }, true);
+
+  // Track IME composition state for proper handling
+  document.addEventListener('compositionstart', () => {
+    isIMEComposing = true;
+  }, true);
+
+  document.addEventListener('compositionend', () => {
+    isIMEComposing = false;
   }, true);
 
   // Handle click outside to close suggestion
