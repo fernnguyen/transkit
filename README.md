@@ -115,6 +115,54 @@ Open the extension popup to customize:
 
 ## Changelog
 
+### v1.1.2
+- **New**: Custom AI Provider Support - Configure your own translation providers
+  - **Ollama (Local)**: Run AI models locally on your machine for 100% privacy and offline capability
+  - **Groq (Fast)**: Lightning-fast inference with generous free tier (llama-3.3-70b-versatile, mixtral-8x7b, etc.)
+  - **Custom Endpoint**: Connect to any OpenAI-compatible API
+- **New**: Custom Prompt Configuration - Tailor translation behavior to your specific needs
+  - Add custom context for technical, casual, or medical terminology
+  - Maximum 500 characters for optimal performance
+- **New**: AI Provider Management UI - Easily switch between and configure multiple providers
+  - Google Gemini, OpenAI, OpenRouter, DeepL, Ollama, and custom endpoints
+- **Improvement**: Enhanced error handling and debugging for API connections
+- **Fix**: Added localhost permissions for local AI provider support
+
+#### Setting up Ollama (Recommended for Privacy)
+
+1. **Install Ollama**: Download from [ollama.com](https://ollama.com)
+
+2. **Pull a model** (we recommend `qwen2.5:1.5b` for fast responses):
+   ```bash
+   ollama pull qwen2.5:1.5b
+   ```
+
+3. **Enable CORS** (required for extension access):
+   ```bash
+   # macOS/Linux
+   OLLAMA_ORIGINS="*" ollama serve
+   
+   # Windows PowerShell
+   $env:OLLAMA_ORIGINS="*"
+   ollama serve
+   ```
+
+4. **Configure in TransKit**:
+   - Open extension popup → AI Provider tab
+   - Click "+ Add Provider"
+   - Select "Ollama (Local)"
+   - Name: `Local Ollama`
+   - Model: `qwen2.5:1.5b`
+   - Click "Save" and "Use"
+
+5. **Test it**: Type `Hello !!vi` in any input field!
+
+**Why Ollama?**
+- ✅ 100% Privacy - Everything runs locally
+- ✅ Free - No API costs
+- ✅ Offline - Works without internet
+- ✅ Fast - Models like `qwen2.5:1.5b` respond in milliseconds
+
 ### v1.1.1
 - **New**: Added `Ctrl+Shift+I` (Cmd on Mac) shortcut to quickly toggle Instant Translate for the current domain.
 - **New**: Added "Instant" label indicator above input fields when instant mode is active.

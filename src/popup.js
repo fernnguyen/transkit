@@ -33,6 +33,14 @@ const formDynamicFields = document.querySelector("#form-dynamic-fields");
 const btnFormCancel = document.querySelector("#form-cancel");
 const btnFormSave = document.querySelector("#form-save");
 
+// Prompt customization elements
+const systemPromptDisplay = document.querySelector("#system-prompt-display");
+const userCustomPrompt = document.querySelector("#user-custom-prompt");
+const promptCharCount = document.querySelector("#prompt-char-count");
+
+// System prompt constant (matches ai-providers.js)
+const DEFAULT_SYSTEM_PROMPT = "You are a professional translator. Translate the user's text from {sourceLang} to {targetLang}. Return ONLY the translated text.";
+
 let currentAliases = {};
 let currentDomains = [];
 let providers = [];
@@ -309,6 +317,38 @@ function renderFormFields(type, config = {}) {
         <input type="password" id="field-apiKey" class="bt-input api-key-input" value="${config.apiKey || ''}" />
       </div>
     `);
+  } else if (type === "ollama") {
+    const model = config.model || "llama2";
+    formDynamicFields.insertAdjacentHTML('beforeend', `
+      <div class="bt-field">
+        <label>Base URL</label>
+        <input type="text" id="field-baseUrl" class="bt-input" value="${config.baseUrl || 'http://localhost:11434/v1'}" placeholder="http://localhost:11434/v1" />
+        <small style="color: #666;">Default Ollama endpoint</small>
+      </div>
+      <div class="bt-field">
+        <label>Model</label>
+        <input type="text" id="field-model" class="bt-input" value="${model}" placeholder="llama2" />
+        <small style="color: #666;">e.g., llama2, mistral, codellama</small>
+      </div>
+    `);
+  } else if (type === "custom") {
+    const baseUrl = config.baseUrl || "";
+    const model = config.model || "gpt-3.5-turbo";
+    formDynamicFields.insertAdjacentHTML('beforeend', `
+      <div class="bt-field">
+        <label>Base URL</label>
+        <input type="text" id="field-baseUrl" class="bt-input" value="${baseUrl}" placeholder="https://api.example.com/v1" />
+        <small style="color: #666;">OpenAI-compatible API endpoint</small>
+      </div>
+      <div class="bt-field">
+        <label>Model</label>
+        <input type="text" id="field-model" class="bt-input" value="${model}" placeholder="gpt-3.5-turbo" />
+      </div>
+      <div class="bt-field">
+        <label>API Key (Optional)</label>
+        <input type="password" id="field-apiKey" class="bt-input api-key-input" value="${config.apiKey || ''}" placeholder="Leave empty if not needed" />
+      </div>
+    `);
   }
   
   // Security Note
@@ -440,6 +480,16 @@ async function loadSettings() {
     ];
     activeProviderId = res.settings.activeProviderId || "builtin";
     
+    // Load Custom Prompt
+    if (userCustomPrompt) {
+      userCustomPrompt.value = res.settings.customPrompt || "";
+      updateCharCounter();
+    }
+    if (systemPromptDisplay) {
+      // Show user-friendly version of system prompt
+      systemPromptDisplay.value = "You are a professional translator. Translate the user's text from source language to target language. Return ONLY the translated text.";
+    }
+    
   } else {
     // Defaults
     enabledCheckbox.checked = true;
@@ -461,6 +511,16 @@ async function loadSettings() {
     
     providers = [{ id: "builtin", type: "gemini-nano", name: "Chrome Built-in AI", config: {} }];
     activeProviderId = "builtin";
+    
+    // Default custom prompt
+    if (userCustomPrompt) {
+      userCustomPrompt.value = "";
+      updateCharCounter();
+    }
+    if (systemPromptDisplay) {
+      // Show user-friendly version of system prompt
+      systemPromptDisplay.value = "You are a professional translator. Translate the user's text from source language to target language. Return ONLY the translated text.";
+    }
   }
   
   renderAliases();
@@ -485,7 +545,9 @@ async function saveSettings() {
     instantDomains: currentDomains,
     // New Provider Structure
     providers,
-    activeProviderId
+    activeProviderId,
+    // Custom Prompt
+    customPrompt: userCustomPrompt?.value || ""
   };
 
   const res = await chrome.runtime.sendMessage({
@@ -581,5 +643,19 @@ document.querySelectorAll('.bt-tab').forEach(tab => {
 });
 
 saveBtn.addEventListener("click", saveSettings);
+
+// Character counter for custom prompt
+function updateCharCounter() {
+  if (promptCharCount && userCustomPrompt) {
+    promptCharCount.textContent = userCustomPrompt.value.length;
+  }
+}
+
+if (userCustomPrompt) {
+  userCustomPrompt.addEventListener("input", () => {
+    updateCharCounter();
+    saveSettings();
+  });
+}
 
 loadSettings();

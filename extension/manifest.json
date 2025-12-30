@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TransKit - Power Inline Translate Kit",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Brings instant, AI-powered translation directly to your input fields. No more switching tabs or copy-pasting—just type translate",
   "author": "@FernNguyen",
   "homepage_url": "https://transkit.app",
@@ -39,7 +39,7 @@
     }
   ],
   "permissions": ["storage", "offscreen"],
-  "host_permissions": ["<all_urls>"],
+  "host_permissions": ["<all_urls>", "http://localhost/*", "http://127.0.0.1/*"],
   "web_accessible_resources": [
     {
       "resources": ["assets/icons/*", "assets/styles/*", "pages/*", "src/*"],

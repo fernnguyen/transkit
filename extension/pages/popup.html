@@ -156,6 +156,9 @@
                 <option value="openai">OpenAI (GPT)</option>
                 <option value="openrouter">OpenRouter</option>
                 <option value="deepl">DeepL</option>
+                <option value="groq">Groq (Fast)</option>
+                <option value="ollama">Ollama (Local)</option>
+                <option value="custom">Custom Endpoint</option>
               </select>
             </div>
 
@@ -170,6 +173,23 @@
             <div class="bt-actions bt-row">
               <button id="form-cancel" class="bt-button bt-button-outline" data-i18n="dialog.cancel">Cancel</button>
               <button id="form-save" class="bt-button" data-i18n="popup.save">Save</button>
+            </div>
+          </div>
+
+          <!-- Prompt Customization Section -->
+          <div id="prompt-customization" class="bt-prompt-section">
+            <h3 class="bt-section-title" data-i18n="popup.promptCustomization">Prompt Customization</h3>
+            <p class="bt-help-text" data-i18n="popup.promptHelp">Customize the translation prompts to fit your specific needs (e.g., technical, casual, medical)</p>
+            
+            <div class="bt-field">
+              <label for="system-prompt-display" data-i18n="popup.systemPrompt">System Prompt (Read-only)</label>
+              <textarea id="system-prompt-display" class="bt-input bt-readonly-textarea" readonly rows="3"></textarea>
+            </div>
+
+            <div class="bt-field">
+              <label for="user-custom-prompt" data-i18n="popup.userPrompt">Your Custom Context (Optional)</label>
+              <textarea id="user-custom-prompt" class="bt-input" maxlength="500" rows="4" placeholder="" data-i18n-placeholder="popup.promptPlaceholder"></textarea>
+              <small class="bt-char-counter"><span id="prompt-char-count">0</span>/500</small>
             </div>
           </div>
         </div>

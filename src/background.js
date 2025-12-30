@@ -57,7 +57,8 @@ async function readSettings() {
           name: "Chrome Built-in AI",
           config: {}
         }
-      ]
+      ],
+      customPrompt: ""
     }
   );
 }

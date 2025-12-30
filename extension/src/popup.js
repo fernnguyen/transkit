@@ -40,6 +40,11 @@ const formDynamicFields = document.querySelector("#form-dynamic-fields");
 const btnFormCancel = document.querySelector("#form-cancel");
 const btnFormSave = document.querySelector("#form-save");
 
+// Prompt customization elements
+const systemPromptDisplay = document.querySelector("#system-prompt-display");
+const userCustomPrompt = document.querySelector("#user-custom-prompt");
+const promptCharCount = document.querySelector("#prompt-char-count");
+
 let currentAliases = {};
 let currentDomains = [];
 let providers = [];
@@ -252,6 +257,11 @@ function getProviderInfo(type) {
         link: 'https://www.deepl.com/your-account/keys',
         text: 'DeepL Account'
       };
+    case 'groq':
+      return {
+        link: 'https://console.groq.com/keys',
+        text: 'Groq Console'
+      };
     default:
       return null;
   }
@@ -275,11 +285,11 @@ function renderFormFields(type, config = {}) {
     const model = config.model || "gemini-flash-latest";
     formDynamicFields.insertAdjacentHTML('beforeend', `
       <div class="bt-field">
-        <label>${i18n.t("popup.apiKey")}</label>
+        <label>API Key</label>
         <input type="password" id="field-apiKey" class="bt-input api-key-input" value="${config.apiKey || ''}" />
       </div>
       <div class="bt-field">
-        <label>${i18n.t("popup.model")}</label>
+        <label>Model</label>
         <input type="text" id="field-model" class="bt-input" value="${model}" placeholder="gemini-flash-latest" />
       </div>
     `);
@@ -287,15 +297,15 @@ function renderFormFields(type, config = {}) {
     const model = config.model || "gpt-3.5-turbo";
     formDynamicFields.insertAdjacentHTML('beforeend', `
       <div class="bt-field">
-        <label>${i18n.t("popup.apiKey")}</label>
+        <label>API Key</label>
         <input type="password" id="field-apiKey" class="bt-input api-key-input" value="${config.apiKey || ''}" />
       </div>
       <div class="bt-field">
-        <label>${i18n.t("popup.model")}</label>
+        <label>Model</label>
         <input type="text" id="field-model" class="bt-input" value="${model}" placeholder="gpt-3.5-turbo" />
       </div>
       <div class="bt-field">
-        <label>${i18n.t("popup.baseUrl")}</label>
+        <label>Base URL (Optional)</label>
         <input type="text" id="field-baseUrl" class="bt-input" value="${config.baseUrl || ''}" placeholder="https://api.openai.com/v1" />
       </div>
     `);
@@ -303,19 +313,64 @@ function renderFormFields(type, config = {}) {
     const model = config.model || "google/gemini-2.0-flash-exp:free";
     formDynamicFields.insertAdjacentHTML('beforeend', `
       <div class="bt-field">
-        <label>${i18n.t("popup.apiKey")}</label>
+        <label>API Key</label>
         <input type="password" id="field-apiKey" class="bt-input api-key-input" value="${config.apiKey || ''}" />
       </div>
       <div class="bt-field">
-        <label>${i18n.t("popup.model")}</label>
+        <label>Model</label>
         <input type="text" id="field-model" class="bt-input" value="${model}" placeholder="google/gemini-2.0-flash-exp:free" />
       </div>
     `);
   } else if (type === "deepl") {
     formDynamicFields.insertAdjacentHTML('beforeend', `
       <div class="bt-field">
-        <label>${i18n.t("popup.apiKey")}</label>
+        <label>API Key</label>
         <input type="password" id="field-apiKey" class="bt-input api-key-input" value="${config.apiKey || ''}" />
+      </div>
+    `);
+  } else if (type === "groq") {
+    const model = config.model || "llama-3.3-70b-versatile";
+    formDynamicFields.insertAdjacentHTML('beforeend', `
+      <div class="bt-field">
+        <label>API Key</label>
+        <input type="password" id="field-apiKey" class="bt-input api-key-input" value="${config.apiKey || ''}" />
+      </div>
+      <div class="bt-field">
+        <label>Model</label>
+        <input type="text" id="field-model" class="bt-input" value="${model}" placeholder="llama-3.3-70b-versatile" />
+        <small style="color: #666;">Lightning-fast inference (llama-3.3-70b-versatile, mixtral-8x7b, etc.)</small>
+      </div>
+    `);
+  } else if (type === "ollama") {
+    const model = config.model || "llama2";
+    formDynamicFields.insertAdjacentHTML('beforeend', `
+      <div class="bt-field">
+        <label>Base URL</label>
+        <input type="text" id="field-baseUrl" class="bt-input" value="${config.baseUrl || 'http://localhost:11434/v1'}" placeholder="http://localhost:11434/v1" />
+        <small style="color: #666;">Default Ollama endpoint</small>
+      </div>
+      <div class="bt-field">
+        <label>Model</label>
+        <input type="text" id="field-model" class="bt-input" value="${model}" placeholder="llama2" />
+        <small style="color: #666;">e.g., llama2, mistral, codellama</small>
+      </div>
+    `);
+  } else if (type === "custom") {
+    const baseUrl = config.baseUrl || "";
+    const model = config.model || "gpt-3.5-turbo";
+    formDynamicFields.insertAdjacentHTML('beforeend', `
+      <div class="bt-field">
+        <label>Base URL</label>
+        <input type="text" id="field-baseUrl" class="bt-input" value="${baseUrl}" placeholder="https://api.example.com/v1" />
+        <small style="color: #666;">OpenAI-compatible API endpoint</small>
+      </div>
+      <div class="bt-field">
+        <label>Model</label>
+        <input type="text" id="field-model" class="bt-input" value="${model}" placeholder="gpt-3.5-turbo" />
+      </div>
+      <div class="bt-field">
+        <label>API Key (Optional)</label>
+        <input type="password" id="field-apiKey" class="bt-input api-key-input" value="${config.apiKey || ''}" placeholder="Leave empty if not needed" />
       </div>
     `);
   }
@@ -466,6 +521,16 @@ async function loadSettings() {
     ];
     activeProviderId = res.settings.activeProviderId || "builtin";
 
+    // Load Custom Prompt
+    if (userCustomPrompt) {
+      userCustomPrompt.value = res.settings.customPrompt || "";
+      updateCharCounter();
+    }
+    if (systemPromptDisplay) {
+      // Show user-friendly version of system prompt
+      systemPromptDisplay.value = "You are a professional translator. Translate the user's text from source language to target language. Return ONLY the translated text.";
+    }
+
     // Load Keyboard Shortcut
     const shortcut = res.settings.instantToggleShortcut || {
       key: "I",
@@ -501,6 +566,16 @@ async function loadSettings() {
     providers = [{ id: "builtin", type: "gemini-nano", name: "Chrome Built-in AI", config: {} }];
     activeProviderId = "builtin";
 
+    // Default custom prompt
+    if (userCustomPrompt) {
+      userCustomPrompt.value = "";
+      updateCharCounter();
+    }
+    if (systemPromptDisplay) {
+      // Show user-friendly version of system prompt
+      systemPromptDisplay.value = "You are a professional translator. Translate the user's text from source language to target language. Return ONLY the translated text.";
+    }
+
     // Default keyboard shortcut
     if (shortcutCtrlCheckbox) shortcutCtrlCheckbox.checked = true;
     if (shortcutShiftCheckbox) shortcutShiftCheckbox.checked = true;
@@ -532,6 +607,8 @@ async function saveSettings() {
     // New Provider Structure
     providers,
     activeProviderId,
+    // Custom Prompt
+    customPrompt: userCustomPrompt?.value || "",
     // Keyboard shortcut
     instantToggleShortcut: {
       key: shortcutKeyInput?.value.toUpperCase() || "I",
@@ -680,5 +757,19 @@ document.querySelectorAll('.bt-tab').forEach(tab => {
 });
 
 saveBtn.addEventListener("click", saveSettings);
+
+// Character counter for custom prompt
+function updateCharCounter() {
+  if (promptCharCount && userCustomPrompt) {
+    promptCharCount.textContent = userCustomPrompt.value.length;
+  }
+}
+
+if (userCustomPrompt) {
+  userCustomPrompt.addEventListener("input", () => {
+    updateCharCounter();
+    saveSettings();
+  });
+}
 
 loadSettings();

@@ -1,9 +1,30 @@
 /**
+ * Default system prompt for translation
+ */
+const DEFAULT_SYSTEM_PROMPT = "You are a professional translator. Translate the user's text from {sourceLang} to {targetLang}. Return ONLY the translated text.";
+
+/**
  * Base class for Translation Providers
  */
 class TranslationProvider {
-  constructor(config) {
+  constructor(config, customPrompt = "") {
     this.config = config;
+    this.customPrompt = customPrompt;
+  }
+
+  /**
+   * Build the complete system prompt with custom additions
+   */
+  buildSystemPrompt(sourceLang, targetLang) {
+    const basePrompt = DEFAULT_SYSTEM_PROMPT
+      .replace("{sourceLang}", sourceLang)
+      .replace("{targetLang}", targetLang);
+    
+    if (this.customPrompt && this.customPrompt.trim()) {
+      return `${basePrompt}\n\nAdditional context: ${this.customPrompt.trim()}`;
+    }
+    
+    return basePrompt;
   }
 
   async translate(text, sourceLang, targetLang) {
@@ -38,7 +59,8 @@ class GeminiProvider extends TranslationProvider {
     
     if (!apiKey) throw new Error("Gemini API Key is missing");
 
-    const prompt = `Translate the following text from ${sourceLang} to ${targetLang}. Only return the translated text, nothing else.\n\nText: ${text}`;
+    const systemPrompt = this.buildSystemPrompt(sourceLang, targetLang);
+    const prompt = `${systemPrompt}\n\nText: ${text}`;
     
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
     
@@ -80,7 +102,7 @@ class OpenAIProvider extends TranslationProvider {
       body: JSON.stringify({
         model: model,
         messages: [
-          { role: "system", content: `You are a professional translator. Translate the user's text from ${sourceLang} to ${targetLang}. Return ONLY the translated text.` },
+          { role: "system", content: this.buildSystemPrompt(sourceLang, targetLang) },
           { role: "user", content: text }
         ]
       })
@@ -154,7 +176,7 @@ class OpenRouterProvider extends TranslationProvider {
       body: JSON.stringify({
         model: model,
         messages: [
-          { role: "system", content: `You are a professional translator. Translate the user's text from ${sourceLang} to ${targetLang}. Return ONLY the translated text.` },
+          { role: "system", content: this.buildSystemPrompt(sourceLang, targetLang) },
           { role: "user", content: text }
         ]
       })
@@ -170,11 +192,106 @@ class OpenRouterProvider extends TranslationProvider {
   }
 }
 
+/**
+ * Groq Provider (Fast inference API)
+ */
+class GroqProvider extends TranslationProvider {
+  async translate(text, sourceLang, targetLang) {
+    const apiKey = this.config.apiKey;
+    const model = this.config.model || "llama-3.3-70b-versatile";
+    const baseUrl = "https://api.groq.com/openai/v1";
+    
+    if (!apiKey) throw new Error("Groq API Key is missing");
+
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          { role: "system", content: this.buildSystemPrompt(sourceLang, targetLang) },
+          { role: "user", content: text }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error?.message || "Groq API Error");
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content?.trim();
+  }
+}
+
+/**
+ * Custom Provider for OpenAI-compatible endpoints (Ollama, LM Studio, etc.)
+ */
+class CustomProvider extends TranslationProvider {
+  async translate(text, sourceLang, targetLang) {
+    const apiKey = this.config.apiKey;
+    const model = this.config.model || "llama2";
+    const baseUrl = this.config.baseUrl || "http://localhost:11434/v1";
+    
+    if (!baseUrl) throw new Error("Base URL is required for Custom provider");
+
+    const headers = {
+      "Content-Type": "application/json"
+    };
+    
+    // Add Authorization header only if API key is provided
+    if (apiKey && apiKey.trim()) {
+      headers["Authorization"] = `Bearer ${apiKey}`;
+    }
+
+    try {
+      console.log(`[CustomProvider] Calling ${baseUrl}/chat/completions with model: ${model}`);
+      
+      const response = await fetch(`${baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify({
+          model: model,
+          messages: [
+            { role: "system", content: this.buildSystemPrompt(sourceLang, targetLang) },
+            { role: "user", content: text }
+          ]
+        })
+      });
+
+      console.log(`[CustomProvider] Response status: ${response.status}`);
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        const errorMsg = err.error?.message || response.statusText;
+        console.error(`[CustomProvider] API Error:`, err);
+        throw new Error(`${errorMsg} (Status: ${response.status})`);
+      }
+
+      const data = await response.json();
+      console.log(`[CustomProvider] Success:`, data);
+      return data.choices?.[0]?.message?.content?.trim();
+    } catch (error) {
+      console.error(`[CustomProvider] Fetch Error:`, error);
+      // Check if it's a network/CORS error
+      if (error.message.includes('Failed to fetch') || error instanceof TypeError) {
+        throw new Error(`Cannot connect to ${baseUrl}. Make sure:\n1. Ollama is running\n2. CORS is enabled\n3. URL is correct`);
+      }
+      throw error;
+    }
+  }
+}
+
 export class AIProviderService {
   constructor(settings) {
     this.settings = settings;
     this.activeProviderId = settings.activeProviderId || "builtin";
     this.providers = settings.providers || [];
+    this.customPrompt = settings.customPrompt || "";
     
     this.activeProvider = this.providers.find(p => p.id === this.activeProviderId) || 
                           this.providers.find(p => p.id === "builtin") ||
@@ -192,13 +309,19 @@ export class AIProviderService {
     
     switch (type) {
       case "gemini":
-        return new GeminiProvider(config);
+        return new GeminiProvider(config, this.customPrompt);
       case "openai":
-        return new OpenAIProvider(config);
+        return new OpenAIProvider(config, this.customPrompt);
       case "openrouter":
-        return new OpenRouterProvider(config);
+        return new OpenRouterProvider(config, this.customPrompt);
       case "deepl":
-        return new DeepLProvider(config);
+        return new DeepLProvider(config, this.customPrompt);
+      case "groq":
+        return new GroqProvider(config, this.customPrompt);
+      case "ollama":
+        return new CustomProvider(config, this.customPrompt);
+      case "custom":
+        return new CustomProvider(config, this.customPrompt);
       case "gemini-nano":
       default:
         return new WindowAIProvider({});

@@ -81,6 +81,7 @@ select {
 
 input[type="text"],
 input[type="number"],
+input[type="password"],
 select {
   min-height: var(--bt-target-min-height);
   padding: var(--bt-space-small) var(--bt-space-medium);
@@ -181,8 +182,23 @@ select {
 }
 
 .bt-field {
-  display: grid;
-  gap: var(--bt-space-medium);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.bt-field label {
+  font-size: var(--bt-font-size-small);
+  font-weight: 500;
+  color: var(--bt-color-text-default);
+  margin-bottom: 0;
+}
+
+.bt-field small {
+  margin-top: 0.25rem;
+  font-size: 11px;
+  color: #666;
+  line-height: 1.4;
 }
 
 .bt-row {
@@ -670,6 +686,7 @@ input:checked + .slider:before {
   gap: 6px;
   align-items: start;
   line-height: 1.4;
+  margin-top: var(--bt-space-small);
 }
 
 .bt-actions.bt-row {
@@ -728,6 +745,82 @@ input:checked + .slider:before {
 
 .bt-ai-warning em {
   font-size: inherit;
+}
+
+/* Prompt Customization Section */
+.bt-prompt-section {
+  margin-top: var(--bt-space-large);
+  padding-top: var(--bt-space-medium);
+  border-top: 1px solid var(--bt-color-border-default);
+  display: grid;
+  gap: var(--bt-space-medium);
+}
+
+.bt-section-title {
+  font-size: var(--bt-font-size-large);
+  font-weight: 600;
+  color: var(--bt-color-text-default);
+  margin-bottom: 0;
+}
+
+.bt-help-text {
+  font-size: var(--bt-font-size-small);
+  color: var(--bt-color-text-muted);
+  line-height: 1.4;
+  margin-top: calc(var(--bt-space-small) * -1);
+}
+
+.bt-readonly-textarea {
+  background-color: #f3f4f6 !important;
+  color: var(--bt-color-text-muted);
+  border-color: var(--bt-color-border-default) !important;
+  cursor: not-allowed;
+  resize: none;
+  font-family: monospace;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+textarea.bt-input {
+  min-height: var(--bt-target-min-height);
+  padding: var(--bt-space-small) var(--bt-space-medium);
+  border: var(--bt-border-width) solid var(--bt-color-border-default);
+  border-radius: var(--bt-radius-small);
+  outline: none;
+  background-color: var(--bt-color-background-default);
+  color: var(--bt-color-text-default);
+  font-size: var(--bt-font-size-small);
+  resize: vertical;
+  transition:
+    border-color var(--bt-transition-duration) var(--bt-ease),
+    background-color var(--bt-transition-duration) var(--bt-ease);
+}
+
+textarea.bt-input::placeholder {
+  color: var(--bt-color-text-muted);
+}
+
+textarea.bt-input:hover {
+  border-color: var(--bt-color-border-hover);
+  background-color: var(--bt-color-background-hover);
+}
+
+textarea.bt-input:focus {
+  border-color: var(--bt-color-border-interactive);
+  background-color: var(--bt-color-background-interactive);
+}
+
+.bt-char-counter {
+  display: block;
+  text-align: right;
+  font-size: 11px;
+  color: var(--bt-color-text-muted);
+  margin-top: 4px;
+}
+
+.bt-char-counter span {
+  font-weight: 500;
+  color: var(--bt-color-text-default);
 }
 
 /* Full Page Layout Adjustments */

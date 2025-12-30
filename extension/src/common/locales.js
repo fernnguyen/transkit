@@ -45,6 +45,12 @@ export const locales = {
     "popup.shortcutCtrl": "Ctrl/Cmd",
     "popup.shortcutShift": "Shift",
     "popup.shortcutAlt": "Alt",
+    "popup.promptCustomization": "Prompt Customization",
+    "popup.promptHelp": "Customize the translation prompts to fit your specific needs (e.g., technical, casual, medical)",
+    "popup.systemPrompt": "System Prompt (Read-only)",
+    "popup.userPrompt": "Your Custom Context (Optional)",
+    "popup.promptPlaceholder": "e.g., Focus on technical terminology in software development",
+    "popup.modelOptional": "Model",
 
     // Help
     "help.title": "How to use TransKit",
@@ -156,6 +162,12 @@ export const locales = {
     "popup.shortcutCtrl": "Ctrl/Cmd",
     "popup.shortcutShift": "Shift",
     "popup.shortcutAlt": "Alt",
+    "popup.promptCustomization": "Tùy chỉnh Prompt",
+    "popup.promptHelp": "Tùy chỉnh prompt dịch để phù hợp với nhu cầu cụ thể của bạn (ví dụ: kỹ thuật, thông dụng, y tế)",
+    "popup.systemPrompt": "System Prompt (Chỉ đọc)",
+    "popup.userPrompt": "Ngữ cảnh tuỳ chỉnh (Tùy chọn)",
+    "popup.promptPlaceholder": "Ví dụ: Tập trung vào thuật ngữ kỹ thuật trong phát triển phần mềm",
+    "popup.modelOptional": "Mô hình",
 
     // Help
     "help.title": "Hướng dẫn sử dụng TransKit",
