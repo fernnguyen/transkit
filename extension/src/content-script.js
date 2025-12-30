@@ -966,8 +966,26 @@ async function toggleInstantDomainForCurrentUrl() {
     );
 
     if (matchingDomainIndex === -1) {
-      // Current domain not in list
-      showToast(i18n.t("toast.domainNotInList") || "This domain is not in instant translate list");
+      // Current domain not in list - AUTO-ADD IT!
+      const domain = extractDomainFromUrl(currentUrl);
+      
+      // Add to list with enabled: true, position: 'auto'
+      settings.instantDomains.push({
+        domain: domain,
+        enabled: true,
+        position: 'auto'
+      });
+      
+      // Save settings
+      await chrome.runtime.sendMessage({
+        type: "set-settings",
+        settings: settings
+      });
+      
+      // Show success toast
+      const enabledText = i18n.t("toast.instantEnabled") || "⚡ Instant translate enabled";
+      const forText = i18n.t("toast.for") || "for";
+      showToastBottomRight(`${enabledText} ${forText} ${domain}`);
       return;
     }
 
@@ -1003,6 +1021,15 @@ async function toggleInstantDomainForCurrentUrl() {
   } catch (err) {
     console.error("Toggle instant domain error:", err);
     showToast(i18n.t("toast.error") || "Error toggling instant domain");
+  }
+}
+
+function extractDomainFromUrl(url) {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.hostname;
+  } catch {
+    return window.location.hostname;
   }
 }
 

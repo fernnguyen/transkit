@@ -356,8 +356,7 @@ input:checked + .slider:before {
 .bt-domain-list {
   display: grid;
   gap: var(--bt-space-small);
-  max-height: 200px;
-  overflow-y: auto;
+  /* Removed max-height and overflow-y to use popup's main scroll */
 }
 
 .bt-domain-item {
@@ -397,7 +396,42 @@ input:checked + .slider:before {
   margin-top: var(--bt-space-small);
 }
 
-/* Keyboard Shortcut Config */
+/* Keyboard Shortcut Config - Compact Version */
+.bt-shortcut-compact {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bt-space-small);
+}
+
+.bt-shortcut-modifiers {
+  display: flex;
+  align-items: center;
+  gap: var(--bt-space-small);
+  flex-wrap: wrap;
+}
+
+.bt-shortcut-modifiers label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--bt-font-size-small);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.bt-shortcut-modifiers input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.bt-shortcut-preview {
+  padding: var(--bt-space-small);
+  background: var(--bt-color-background-hover);
+  border-radius: var(--bt-radius-small);
+  text-align: center;
+}
+
+/* Legacy shortcut config (keep for compatibility) */
 .bt-shortcut-config {
   display: grid;
   gap: var(--bt-space-medium);

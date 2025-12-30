@@ -99,9 +99,20 @@
             </div>
 
             <div class="bt-field">
+              <label data-i18n="popup.activeDomains">Active Domains</label>
+              <div id="instant-domain-list" class="bt-domain-list"></div>
+              <div class="bt-domain-input-group">
+                <input type="text" id="new-domain" placeholder="example.com" data-i18n-placeholder="popup.domainPlaceholder" />
+                <button id="add-domain" class="bt-button-small">+</button>
+              </div>
+            </div>
+
+            <div class="bt-divider"></div>
+
+            <div class="bt-field">
               <label data-i18n="popup.toggleShortcut">Toggle Instant Shortcut</label>
-              <div class="bt-shortcut-config">
-                <div class="bt-shortcut-row">
+              <div class="bt-shortcut-compact">
+                <div class="bt-shortcut-modifiers">
                   <label>
                     <input type="checkbox" id="shortcut-ctrl" checked />
                     <span data-i18n="popup.shortcutCtrl">Ctrl/Cmd</span>
@@ -114,23 +125,12 @@
                     <input type="checkbox" id="shortcut-alt" />
                     <span data-i18n="popup.shortcutAlt">Alt</span>
                   </label>
-                </div>
-                <div class="bt-field">
-                  <label for="shortcut-key" data-i18n="popup.shortcutKey">Key</label>
-                  <input type="text" id="shortcut-key" class="bt-input" maxlength="1" value="I" style="width: 60px; text-transform: uppercase;" />
+                  <span style="margin: 0 8px; color: #888;">+</span>
+                  <input type="text" id="shortcut-key" class="bt-input" maxlength="1" value="I" style="width: 50px; text-align: center; text-transform: uppercase;" />
                 </div>
                 <div class="bt-shortcut-preview">
                   <small id="shortcut-preview" style="color: #888;">Ctrl+Shift+I (Cmd+Shift+I on Mac)</small>
                 </div>
-              </div>
-            </div>
-
-            <div class="bt-field">
-              <label data-i18n="popup.activeDomains">Active Domains</label>
-              <div id="instant-domain-list" class="bt-domain-list"></div>
-              <div class="bt-domain-input-group">
-                <input type="text" id="new-domain" placeholder="example.com" data-i18n-placeholder="popup.domainPlaceholder" />
-                <button id="add-domain" class="bt-button-small">+</button>
               </div>
             </div>
           </div>
@@ -215,6 +215,31 @@
               <h4 data-i18n="help.instant.title">Instant Mode</h4>
               <p data-i18n="help.instant.desc">On enabled domains, just type and wait. A suggestion will appear.</p>
               <p data-i18n="help.instant.apply">Press <kbd>Tab</kbd> to apply or <kbd>Esc</kbd> to dismiss.</p>
+              <p><strong>Quick Toggle:</strong> Press <kbd>Ctrl+Shift+I</kbd> (or <kbd>Cmd+Shift+I</kbd> on Mac) to enable/disable instant mode for current domain. If the domain is not in your list, it will be auto-added!</p>
+            </div>
+
+            <div class="bt-help-item">
+              <h4>AI Providers</h4>
+              <p>Choose from multiple AI providers in the <strong>AI Provider</strong> tab:</p>
+              <ul style="margin: 8px 0; padding-left: 20px;">
+                <li><strong>Chrome Built-in AI</strong> - Free, private, offline (default)</li>
+                <li><strong>Google Gemini</strong> - Fast and accurate</li>
+                <li><strong>OpenAI (GPT)</strong> - Industry-leading quality</li>
+                <li><strong>Groq</strong> - Lightning-fast inference with generous free tier</li>
+                <li><strong>Ollama (Local)</strong> - 100% privacy, run models locally (recommended: <code>qwen2.5:1.5b</code>)</li>
+                <li><strong>Custom Endpoint</strong> - Any OpenAI-compatible API</li>
+              </ul>
+              <p><em>Tip: For privacy and offline use, try Ollama with qwen2.5:1.5b model!</em></p>
+            </div>
+
+            <div class="bt-help-item">
+              <h4>Custom Prompts</h4>
+              <p>Tailor translation behavior in the <strong>Prompt</strong> tab:</p>
+              <ul style="margin: 8px 0; padding-left: 20px;">
+                <li>Add context for technical, casual, or medical terminology</li>
+                <li>Maximum 500 characters for optimal performance</li>
+                <li>System prompt is fixed for consistency</li>
+              </ul>
             </div>
 
             <div class="bt-divider"></div>
@@ -225,6 +250,15 @@
                 on first use if needed.
               </em>
             </p>
+
+            <div style="text-align: center; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--bt-color-border-default);">
+              <p style="margin: 0; font-size: 13px; color: var(--bt-color-text-muted);">
+                Made with ❤️ by <a href="https://github.com/fernnguyen" target="_blank" style="color: var(--bt-color-text-interactive); text-decoration: none;">@FernNguyen</a>
+              </p>
+              <p style="margin: 4px 0 0 0; font-size: 12px;">
+                <a href="https://github.com/fernnguyen/transkit" target="_blank" style="color: var(--bt-color-text-muted); text-decoration: none;">⭐ Star on GitHub</a>
+              </p>
+            </div>
           </div>
         </div>
 
