@@ -206,9 +206,12 @@ function renderDomains() {
 function renderProviderList() {
   providerListEl.innerHTML = "";
   
+  // Define default provider IDs that cannot be edited or deleted
+  const DEFAULT_PROVIDER_IDS = ["google-translate", "builtin"];
+  
   providers.forEach(p => {
     const isActive = p.id === activeProviderId;
-    const isBuiltin = p.id === "builtin";
+    const isDefaultProvider = DEFAULT_PROVIDER_IDS.includes(p.id);
     
     const el = document.createElement("div");
     el.className = `bt-provider-item ${isActive ? 'active' : ''}`;
@@ -221,7 +224,8 @@ function renderProviderList() {
       actionsHtml += `<button class="bt-btn-text btn-set-active" data-id="${p.id}">${i18n.t("popup.use")}</button>`;
     }
     
-    if (!isBuiltin) {
+    // Only allow edit/delete for non-default providers
+    if (!isDefaultProvider) {
       actionsHtml += `<button class="bt-btn-text btn-edit" data-id="${p.id}">${i18n.t("popup.edit")}</button>`;
       actionsHtml += `<button class="bt-btn-text btn-delete" data-id="${p.id}">${i18n.t("popup.delete")}</button>`;
     }
@@ -252,7 +256,8 @@ function renderProviderList() {
       if (confirm("Delete this provider?")) {
         providers = providers.filter(p => p.id !== e.target.dataset.id);
         if (activeProviderId === e.target.dataset.id) {
-          activeProviderId = "builtin";
+          // Fallback to Google Translate instead of builtin
+          activeProviderId = "google-translate";
         }
         renderProviderList();
         saveSettings();

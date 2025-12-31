@@ -49,8 +49,21 @@ async function readSettings() {
         { domain: "gemini.google.com", enabled: true, position: "top" }
       ],
       // AI Provider settings
-      activeProviderId: "builtin",
+      activeProviderId: "google-translate",
       providers: [
+        {
+          id: "google-translate",
+          type: "google-translate",
+          name: "Google Translate",
+          config: {}
+        },
+        // Microsoft Translate removed - requires Authorization
+        // {
+        //   id: "microsoft-translate",
+        //   type: "microsoft-translate",
+        //   name: "Microsoft Translate (Bing)",
+        //   config: {}
+        // },
         {
           id: "builtin",
           type: "gemini-nano",

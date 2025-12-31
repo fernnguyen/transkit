@@ -155,6 +155,95 @@ class DeepLProvider extends TranslationProvider {
 }
 
 /**
+ * Google Translate Provider (Free, no API key required)
+ */
+class GoogleTranslateProvider extends TranslationProvider {
+  async translate(text, sourceLang, targetLang) {
+    // Google Translate uses ISO 639-1 codes, 'auto' for auto-detect
+    const sl = sourceLang === 'auto' ? 'auto' : sourceLang.toLowerCase();
+    const tl = targetLang.toLowerCase();
+    
+    // Encode the text for URL
+    const encodedText = encodeURIComponent(text);
+    
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&dj=1&sl=${sl}&tl=${tl}&q=${encodedText}`;
+    
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error("Google Translate API Error: " + response.statusText);
+    }
+
+    const data = await response.json();
+    
+    // Parse the response
+    // Response contains a "sentences" array where each item has "trans" field
+    if (!data.sentences || !Array.isArray(data.sentences)) {
+      throw new Error("Invalid response from Google Translate");
+    }
+    
+    // Concatenate all translation segments
+    const translation = data.sentences
+      .map(sentence => sentence.trans)
+      .filter(trans => trans) // Filter out any undefined/null values
+      .join('');
+    
+    return translation;
+  }
+}
+
+/**
+ * Microsoft Translate Provider (Bing) - DISABLED: Requires Authorization
+ * Keeping code commented for future reference if auth method is found
+ */
+// class MicrosoftTranslateProvider extends TranslationProvider {
+//   async translate(text, sourceLang, targetLang) {
+//     // Microsoft Translate uses ISO 639-1 codes
+//     // For auto-detect, leave 'from' parameter empty
+//     const from = sourceLang === 'auto' ? '' : sourceLang.toLowerCase();
+//     const to = targetLang.toLowerCase();
+//     
+//     const url = `https://api-edge.cognitive.microsofttranslator.com/translate?from=${from}&to=${to}&api-version=3.0`;
+//     
+//     // Microsoft Translate expects an array of text objects
+//     const requestBody = [{ Text: text }];
+//     
+//     const response = await fetch(url, {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json"
+//       },
+//       body: JSON.stringify(requestBody)
+//     });
+//
+//     if (!response.ok) {
+//       throw new Error("Microsoft Translate API Error: " + response.statusText);
+//     }
+//
+//     const data = await response.json();
+//     
+//     // Parse the response
+//     // Response is an array where each item has "translations" array
+//     if (!Array.isArray(data) || data.length === 0) {
+//       throw new Error("Invalid response from Microsoft Translate");
+//     }
+//     
+//     // Extract the translation from the first item
+//     const translationItem = data[0];
+//     if (!translationItem.translations || translationItem.translations.length === 0) {
+//       throw new Error("No translation found in Microsoft Translate response");
+//     }
+//     
+//     return translationItem.translations[0].text;
+//   }
+// }
+
+/**
  * OpenRouter Provider
  */
 class OpenRouterProvider extends TranslationProvider {
@@ -316,6 +405,10 @@ export class AIProviderService {
         return new OpenRouterProvider(config, this.customPrompt);
       case "deepl":
         return new DeepLProvider(config, this.customPrompt);
+      case "google-translate":
+        return new GoogleTranslateProvider(config, this.customPrompt);
+      // case "microsoft-translate":
+      //   return new MicrosoftTranslateProvider(config, this.customPrompt);
       case "groq":
         return new GroqProvider(config, this.customPrompt);
       case "ollama":
