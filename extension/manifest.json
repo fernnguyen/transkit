@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TransKit - Power Inline Translate Kit",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Brings instant, AI-powered translation directly to your input fields. No more switching tabs or copy-pasting—just type translate",
   "author": "@FernNguyen",
   "homepage_url": "https://transkit.app",

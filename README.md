@@ -125,6 +125,15 @@ Open the extension popup to customize:
 
 ## Changelog
 
+### v1.2.1
+- **New**: **Line-by-Line Translation** - Default granularity changed from "block" to "line" for more precise hover translations.
+- **New**: **Smart Boundary Detection** - Intelligent detection of message boundaries on chat platforms (Discord, Slack, Telegram). No more accidentally selecting entire conversations.
+- **New**: **Modern CSS Spinner** - Replaced GIF loading indicator with a lightweight, modern CSS spinner animation.
+- **Improved**: **HTML Bracket Escaping** - Fixed issue where text containing `<` or `>` (like `<0.5%`, `<=`, `>=`) was incorrectly parsed as HTML tags and causing data loss.
+- **Improved**: **Responsive Selection Popup** - Selection popup now dynamically adjusts width (320px-520px) and has a maximum height with smooth scrolling for long content.
+- **Improved**: **Custom Scrollbars** - Added sleek, minimal scrollbars to translation content areas.
+- **Fix**: Resolved issue where hovering on Discord messages would select the entire chat instead of individual messages.
+
 ### v1.2.0
 - **New**: **Hover to Translate** - Simply hover over any text and press a modifier key (default: `Ctrl`) to see an instant translation.
   - **Smart Selection**: Intelligently detects paragraphs, sentences, or specific text blocks.
