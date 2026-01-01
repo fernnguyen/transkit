@@ -30,9 +30,15 @@
 
 .bt-selection-popup {
   all: initial;
-  display: block;
+  display: flex;
+  flex-direction: column;
   position: absolute;
-  width: 350px;
+  /* Responsive width: expand for longer content */
+  min-width: 320px;
+  max-width: min(520px, 90vw);
+  width: max-content;
+  /* Limit height with scroll */
+  max-height: min(70vh, 600px);
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(4px);
   border: 1px solid #e5e7eb;
@@ -114,6 +120,7 @@
   border-bottom: 1px solid var(--bt-color-border-default);
   cursor: move;
   user-select: none;
+  flex-shrink: 0; /* Don't shrink header */
 }
 
 .bt-selection-title {
@@ -141,6 +148,32 @@
   padding: 1rem;
   display: grid;
   gap: 0.75rem;
+  /* Scrollable content area */
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* Smooth scroll */
+  scroll-behavior: smooth;
+  /* Custom scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+
+.bt-selection-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.bt-selection-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bt-selection-content::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.bt-selection-content::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
 }
 .bt-selection-content-style {
   font-size: 14px;
@@ -247,6 +280,24 @@
   font-size: var(--bt-font-size-small);
   line-height: 1.5;
   color: var(--bt-color-text-default);
+  /* Limit individual text boxes for very long content */
+  max-height: 180px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+
+.bt-selection-text::-webkit-scrollbar {
+  width: 4px;
+}
+
+.bt-selection-text::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bt-selection-text::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 2px;
 }
 
 .bt-loading-text {
@@ -264,6 +315,7 @@
   background: var(--bt-color-background-hover); /* Slight contrast for footer */
   border-bottom-left-radius: var(--bt-radius-small);
   border-bottom-right-radius: var(--bt-radius-small);
+  flex-shrink: 0; /* Don't shrink footer */
 }
 
 .bt-selection-settings {
