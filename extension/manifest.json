@@ -32,7 +32,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["src/content-script.js"],
+      "js": ["src/content-script-granularity.js", "src/content-script.js"],
       "css": [
         "assets/styles/inline-suggestion.css",
         "assets/styles/selection.css",

@@ -50,6 +50,7 @@ const hoverTranslateEnabled = document.getElementById('hover-translate-enabled')
 const hoverUniqueMode = document.getElementById('hover-unique-mode');
 const hoverSettings = document.getElementById('hover-settings');
 const hoverMode = document.getElementById('hover-mode');
+const hoverGranularity = document.getElementById('hover-granularity');
 const hoverModifier = document.getElementById('hover-modifier');
 const hoverShortcutCtrl = document.getElementById('hover-shortcut-ctrl');
 const hoverShortcutShift = document.getElementById('hover-shortcut-shift');
@@ -599,6 +600,7 @@ async function loadSettings() {
     hoverSettings.hidden = !hoverTranslateEnabled.checked;
     hoverMode.value = res.settings.hoverTranslateMode || 'inject';
     hoverModifier.value = res.settings.hoverModifierKey || 'ctrl';
+    hoverGranularity.value = res.settings.hoverTranslateGranularity || 'line';
 
     // Load hover toggle shortcut
     const hoverShortcut = res.settings.hoverToggleShortcut || { key: 'H', ctrl: true, shift: true, alt: false };
@@ -694,6 +696,7 @@ async function saveSettings() {
     hoverTranslateEnabled: hoverTranslateEnabled?.checked || false,
     hoverUniqueMode: hoverUniqueMode?.checked !== false,
     hoverTranslateMode: hoverMode?.value || 'inject',
+    hoverTranslateGranularity: hoverGranularity?.value || 'line',
     hoverModifierKey: hoverModifier?.value || 'ctrl',
     hoverToggleShortcut: {
       key: hoverShortcutKey?.value.toUpperCase() || 'O',
@@ -880,6 +883,7 @@ if (hoverUnderline) hoverUnderline.addEventListener('change', saveSettings);
 if (hoverFontSize) hoverFontSize.addEventListener('change', saveSettings);
 if (hoverTextColor) hoverTextColor.addEventListener('change', saveSettings);
 if (hoverMode) hoverMode.addEventListener('change', saveSettings);
+if (hoverGranularity) hoverGranularity.addEventListener('change', saveSettings);
 if (hoverModifier) hoverModifier.addEventListener('change', saveSettings);
 
 if (manageHoverDomains) {

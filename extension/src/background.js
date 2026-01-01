@@ -1,4 +1,5 @@
 import { AIProviderService } from "./services/ai-providers.js";
+import { htmlToMarkdown, markdownToHtml, shouldConvertFormat } from "./services/format-utils.js";
 
 const OFFSCREEN_URL = chrome.runtime.getURL("../pages/offscreen.html");
 const SETTINGS_KEY = "translatorSettings";
@@ -138,23 +139,47 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const targetLang = targetLanguage;
 
       const aiService = new AIProviderService(settings);
+      
+      // Determine the provider type to use
+      const activeProvider = providerId 
+        ? settings.providers.find(p => p.id === providerId)
+        : settings.providers.find(p => p.id === settings.activeProviderId);
+      
+      const providerType = activeProvider?.type || "gemini-nano";
 
       try {
-        const result = await aiService.translate(text, sourceLang, targetLang, providerId);
+        // --- Format Conversion Logic ---
+        let textToTranslate = text;
+        let hasFormatting = false;
+        
+        // Apply format conversion for all providers
+        if (shouldConvertFormat(text)) {
+          textToTranslate = htmlToMarkdown(text);
+          hasFormatting = true;
+        }
+        
+        const result = await aiService.translate(textToTranslate, sourceLang, targetLang, providerId);
         
         // If result is the special signal for Window AI, use offscreen
         if (result?.useOffscreen) {
           await ensureOffscreen();
           const offscreenResult = await chrome.runtime.sendMessage({ 
             type: "offscreen-translate", 
-            payload: message.payload 
+            payload: { ...message.payload, text: textToTranslate }
           });
           
           if (offscreenResult?.ok) {
+            let translation = offscreenResult.translation;
+            
+            // Convert back to HTML if formatting was converted
+            if (hasFormatting && translation) {
+              translation = markdownToHtml(translation);
+            }
+            
             // offscreenResult is { ok: true, translation: "...", ... }
             // We need to construct the result object expected by content-script
             const resultObj = {
-              translation: offscreenResult.translation,
+              translation: translation,
               sourceLanguage: offscreenResult.sourceLanguage,
               targetLanguage: offscreenResult.targetLanguage,
               providerName: offscreenResult.providerName || "Chrome Built-in AI",
@@ -166,11 +191,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({ ok: false, error: offscreenResult?.error || "Unknown error" });
           }
         } else {
+          // Convert back to HTML if formatting was converted
+          let translation = result.translation;
+          if (hasFormatting && translation) {
+            translation = markdownToHtml(translation);
+          }
+          
           // Result is the object { translation, providerName, providerType }
           sendResponse({ 
             ok: true, 
             result: {
-              translation: result.translation,
+              translation: translation,
               providerName: result.providerName,
               providerType: result.providerType,
               sourceLanguage: sourceLang,

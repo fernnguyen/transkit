@@ -58,6 +58,11 @@ export const locales = {
     "popup.hoverModeInject": "Inject Below (Recommended)",
     "popup.hoverModeReplace": "Replace Original",
     "popup.hoverModeHint": "Inject adds translation below. Replace swaps text.",
+    "popup.hoverGranularity": "Translation Granularity",
+    "popup.granularityBlock": "Block (Entire Paragraph)",
+    "popup.granularityLine": "Line by Line",
+    "popup.granularitySentence": "Sentence by Sentence",
+    "popup.hoverGranularityHint": "Line-by-line works best for chat apps like Discord.",
     "popup.modifierKey": "Modifier Key",
     "popup.injectStyle": "Inject Style",
     "popup.textColor": "Text Color",
@@ -189,6 +194,11 @@ export const locales = {
     "popup.modelOptional": "Mô hình",
 
     // Hover Translate
+    "popup.hoverGranularity": "Mức độ chi tiết",
+    "popup.granularityBlock": "Toàn bộ đoạn văn",
+    "popup.granularityLine": "Từng dòng",
+    "popup.granularitySentence": "Từng câu",
+    "popup.hoverGranularityHint": "Dịch từng dòng phù hợp với ứng dụng chat như Discord.",
     "popup.enableHover": "Bật chế độ dịch Hover + Ctrl",
     "popup.hoverMode": "Nội dung hiển thị",
     "popup.hoverModeInject": "Chèn bên dưới (Khuyên dùng)",

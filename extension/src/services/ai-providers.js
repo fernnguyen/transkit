@@ -1,7 +1,13 @@
 /**
- * Default system prompt for translation
+ * Default system prompt for translation with Markdown preservation
  */
-const DEFAULT_SYSTEM_PROMPT = "You are a professional translator. Translate the user's text from {sourceLang} to {targetLang}. Return ONLY the translated text.";
+const DEFAULT_SYSTEM_PROMPT = `You are a professional translator. Translate the user's text from {sourceLang} to {targetLang}.
+
+RULES:
+1. Keep all Markdown symbols (**, _, ~~, \`, \`\`\`, -, <u>) exactly as they are.
+2. DO NOT translate content inside backticks (\`...\`) or code blocks (\`\`\`...\`\`\`).
+3. Preserve all formatting markers in their original positions.
+4. Return ONLY the translated text with preserved Markdown.`;
 
 /**
  * Base class for Translation Providers
@@ -159,6 +165,10 @@ class DeepLProvider extends TranslationProvider {
  */
 class GoogleTranslateProvider extends TranslationProvider {
   async translate(text, sourceLang, targetLang) {
+    console.log('[GoogleTranslate] Received text:', text);
+    console.log('[GoogleTranslate] Text length:', text?.length);
+    console.log('[GoogleTranslate] Has HTML tags:', /<[a-z][\s\S]*>/i.test(text));
+    
     // Google Translate uses ISO 639-1 codes, 'auto' for auto-detect
     const sl = sourceLang === 'auto' ? 'auto' : sourceLang.toLowerCase();
     const tl = targetLang.toLowerCase();

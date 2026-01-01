@@ -117,6 +117,16 @@
               <small style="color: #666;" data-i18n="popup.hoverModeHint">Inject adds translation below. Replace swaps text.</small>
             </div>
 
+            <div class="bt-field">
+              <label for="hover-granularity" data-i18n="popup.hoverGranularity">Translation Granularity</label>
+              <select id="hover-granularity" class="bt-input">
+                <option value="block" data-i18n="popup.granularityBlock">Block (Entire Paragraph)</option>
+                <option value="line" data-i18n="popup.granularityLine">Line by Line</option>
+                <option value="sentence" data-i18n="popup.granularitySentence">Sentence by Sentence</option>
+              </select>
+              <small style="color: #666;" data-i18n="popup.hoverGranularityHint">Line-by-line works best for chat apps like Discord.</small>
+            </div>
+
             <div class="bt-field-row" style="justify-content: space-between;">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <label class="bt-switch">

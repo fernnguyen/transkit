@@ -11,6 +11,15 @@ let hoverTranslateCache = new Map();
 let currentHoveredElement = null;
 let hoverTimeout = null;
 
+// Listen for cache clear command
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'clear-hover-cache') {
+    hoverTranslateCache.clear();
+    console.log('[Hover Cache] Cache cleared!');
+    sendResponse({ ok: true });
+  }
+});
+
 function registerHoverTranslate() {
   // Track modifier key state
   document.addEventListener('keydown', async (e) => {
@@ -109,10 +118,16 @@ function findTranslatableElement(target) {
 }
 
 async function handleHoverTranslate(element, settings) {
-  const text = element.textContent?.trim();
+  // Always use innerHTML to capture any potential formatting
+  // The format converter will decide if conversion is needed
+  const text = element.innerHTML?.trim();
   if (!text) return;
   
-  const cacheKey = `${text}-${settings.nativeLanguageCode}`; // Cache by native lang (target of hover translate)
+  console.log('[Hover Debug] Element innerHTML:', text);
+  console.log('[Hover Debug] Element has formatting:', /<[a-z][\s\S]*>/i.test(text));
+  
+  // Include providerId in cache key to support provider switching
+  const cacheKey = `${text}-${settings.nativeLanguageCode}-${settings.activeProviderId}`;
   if (hoverTranslateCache.has(cacheKey)) {
     applyHoverTranslation(element, hoverTranslateCache.get(cacheKey), settings);
     return;
@@ -180,7 +195,8 @@ function applyInjectMode(element, translation, settings, isError = false) {
     translationEl.classList.add('bt-hover-underline');
   }
   
-  translationEl.textContent = translation;
+  // Use innerHTML to preserve formatting (converted from Markdown)
+  translationEl.innerHTML = translation;
   translationEl.dataset.btInjected = 'true';
   
   // Apply error styling if needed

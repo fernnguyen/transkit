@@ -26,7 +26,121 @@ body.bt-hover-translate-active * {
   text-decoration: underline;
 }
 
-/* Loading state */
+/* Modern CSS Spinner - TransKit Style */
+.bt-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+.bt-spinner::after {
+  content: '';
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  border-top-color: #667eea;
+  border-right-color: #667eea;
+  animation: bt-spin 0.6s linear infinite;
+}
+
+/* Gradient variant - more modern look */
+.bt-spinner-gradient::after {
+  border: 2px solid transparent;
+  border-top-color: #667eea;
+  border-right-color: #764ba2;
+  border-bottom-color: transparent;
+  border-left-color: transparent;
+}
+
+/* Dots variant - minimalist */
+.bt-spinner-dots {
+  width: auto;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-right: 6px;
+}
+
+.bt-spinner-dots::before,
+.bt-spinner-dots::after,
+.bt-spinner-dots span {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #667eea;
+  animation: bt-bounce 1.2s ease-in-out infinite;
+}
+
+.bt-spinner-dots::after {
+  animation-delay: 0.2s;
+}
+
+.bt-spinner-dots span {
+  animation-delay: 0.4s;
+}
+
+/* Pulse variant - subtle */
+.bt-spinner-pulse {
+  width: 14px;
+  height: 14px;
+  margin-right: 6px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.bt-spinner-pulse::after {
+  content: '';
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  animation: bt-pulse 1s ease-in-out infinite;
+}
+
+@keyframes bt-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes bt-bounce {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes bt-pulse {
+  0%, 100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Loading indicator wrapper */
+.bt-loading-indicator {
+  display: inline-flex;
+  align-items: center;
+  color: #667eea;
+  font-size: 0.85em;
+  opacity: 0.9;
+}
+
+/* Legacy loading icon support */
 .bt-hover-loading-icon {
   width: 16px;
   height: 16px;
@@ -48,12 +162,7 @@ body.bt-hover-translate-active * {
   transition: background 0.2s;
 }
 
-/* Replaced element highlight */
-.bt-hover-translated {
-  background: rgba(118, 75, 162, 0.15);
-  border-radius: 4px;
-  transition: background 0.2s;
-}
+
 
 @keyframes btHoverFadeIn {
   from {

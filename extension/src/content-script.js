@@ -1758,6 +1758,7 @@ function registerHoverTranslate() {
 
           
           // Unique Mode: Clear all other translations if enabled
+          // Note: We also check this inside handleHoverTranslate for mouseover events
           if (settings.hoverUniqueMode !== false) {
              clearAllHoverTranslations();
           }
@@ -1823,17 +1824,75 @@ function registerHoverTranslate() {
   }, true);
 }
 
+/**
+ * Check if element is a translation boundary (should not traverse beyond)
+ * Boundaries are containers for individual messages/content blocks on chat platforms
+ */
+function isTranslationBoundary(element) {
+  if (!element || element.nodeType !== Node.ELEMENT_NODE) return false;
+
+  // Discord: message content divs have class containing 'messageContent' or ID starting with 'message-content-'
+  const className = element.className || '';
+  const id = element.id || '';
+
+  // Check Discord patterns
+  if (className.includes('messageContent') || id.startsWith('message-content-')) {
+    return true;
+  }
+
+  // Slack: message blocks
+  if (className.includes('p-rich_text_section') || className.includes('c-message__body')) {
+    return true;
+  }
+
+  // Telegram Web: message bubbles
+  if (className.includes('message-content') || className.includes('text-content')) {
+    return true;
+  }
+
+  // Generic: data attributes that might indicate message boundaries
+  if (element.hasAttribute('data-message-id') || element.hasAttribute('data-msg-id')) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Find the nearest boundary ancestor (if any)
+ */
+function findBoundaryAncestor(element) {
+  let current = element;
+  while (current && current !== document.body) {
+    if (isTranslationBoundary(current)) {
+      return current;
+    }
+    current = current.parentElement;
+  }
+  return null;
+}
+
 function findTranslatableElement(target) {
   let element = target;
   let depth = 0;
   const maxDepth = 5;
-  
 
-  
+  // Find boundary first - we should not traverse beyond this
+  const boundary = findBoundaryAncestor(target);
+
   while (element && depth < maxDepth) {
+    // CRITICAL: If we have a boundary, never go beyond it
+    // Check if current element is at or beyond the boundary
+    if (boundary) {
+      // If we've reached the boundary's parent, stop and return boundary
+      if (element === boundary.parentElement || !boundary.contains(element)) {
+        return boundary;
+      }
+    }
+
     // Ignore our own translation elements
     if (element.classList.contains('bt-hover-translation')) return null;
-    
+
     // Ignore interactive elements to avoid conflict
     if (['BUTTON', 'INPUT', 'TEXTAREA', 'SELECT', 'A'].includes(element.tagName)) {
        // Unless it's a link with significant text, maybe? For now, skip to avoid issues.
@@ -1846,12 +1905,17 @@ function findTranslatableElement(target) {
     }
 
     const text = element.textContent?.trim();
-    
+
     if (text && text.length > 2 && text.length < 2000) { // Adjusted limits
       const tagName = element.tagName?.toLowerCase();
-      // Expanded tag list
-      if (['div', 'p', 'span', 'article', 'section', 'li', 'td', 'th', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'a', 'b', 'i', 'strong', 'em', 'blockquote', 'pre', 'code'].includes(tagName)) {
-        
+      // Block-level elements only (removed 'span', 'a', 'b', 'i' to prioritize containers)
+      if (['div', 'p', 'article', 'section', 'li', 'td', 'th', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre'].includes(tagName)) {
+
+        // If this element IS the boundary, return it directly (skip container checks)
+        if (boundary && element === boundary) {
+          return element;
+        }
+
         // Smart check: If it's a DIV/SECTION, ensure it's not just a container of other blocks
         // We prefer "leaf" blocks or blocks with mostly text
         if (['div', 'section', 'article'].includes(tagName)) {
@@ -1864,6 +1928,10 @@ function findTranslatableElement(target) {
                .map(n => n.textContent.trim())
                .join('');
              if (directText.length < 50) {
+               // If this would take us beyond boundary, return boundary instead
+               if (boundary && (element.parentElement === boundary.parentElement || !boundary.contains(element.parentElement))) {
+                 return boundary;
+               }
                element = element.parentElement;
                depth++;
                continue;
@@ -1874,42 +1942,86 @@ function findTranslatableElement(target) {
         const textNodes = Array.from(element.childNodes).filter(
           n => n.nodeType === Node.TEXT_NODE && n.textContent.trim()
         );
-        
+
         // Allow if it has text nodes OR is a small container
         if (textNodes.length > 0 || element.children.length <= 3) {
-
+          // LIST PROMOTION: If we found a list item, select the whole list
+          // BUT NOT if there's a boundary - in chat apps, each LI is a separate message
+          if (['LI', 'DT', 'DD'].includes(element.tagName)) {
+             // If we have a boundary ancestor, don't promote - return the boundary
+             if (boundary) {
+               return boundary;
+             }
+             return element.closest('ul, ol, dl') || element.parentElement;
+          }
           return element;
         }
       }
     }
-    
+
     element = element.parentElement;
     depth++;
   }
-  
+
+  // If we have a boundary but didn't find suitable element, return boundary
+  if (boundary) {
+    return boundary;
+  }
 
   return null;
 }
 
 async function handleHoverTranslate(element, settings) {
-  const text = element.textContent?.trim();
+  // Always use innerHTML to capture any potential formatting
+  const text = element.innerHTML?.trim();
 
   if (!text) {
-
     return;
   }
   
+  // Log parent element info for debugging
+  console.log('[Hover] Target:', element.tagName, 'Granularity:', settings.hoverTranslateGranularity || 'line');
+
+  // Get granularity setting (default: 'line')
+  const granularity = settings.hoverTranslateGranularity || 'line';
+  
+  // Unique Mode Check (Fix: Moved inside handler to catch mouseover events)
+  if (settings.hoverUniqueMode !== false) {
+    clearAllHoverTranslations();
+  }
+
+  // Route to appropriate translation method based on granularity
+  if (granularity === 'line') {
+    return handleLineByLineTranslate(
+      element, text, settings,
+      createHoverPlaceholder,
+      updateHoverContent,
+      requestTranslation,
+      hoverTranslateCache,
+      clearAllHoverTranslations
+    );
+  } else if (granularity === 'sentence') {
+    return handleSentenceBySentenceTranslate(
+      element, text, settings,
+      createHoverPlaceholder,
+      updateHoverContent,
+      requestTranslation,
+      hoverTranslateCache,
+      clearAllHoverTranslations
+    );
+  }
+  
+  // Default: Block mode (existing behavior)
   // Create placeholder immediately
   const placeholder = createHoverPlaceholder(element, settings);
   
-  const cacheKey = `${text}-${settings.nativeLanguageCode}`; // Cache by native lang (target of hover translate)
+  // Include providerId in cache key to support provider switching
+  const cacheKey = `${text}-${settings.nativeLanguageCode}-${settings.activeProviderId}`;
   if (hoverTranslateCache.has(cacheKey)) {
-
     updateHoverContent(placeholder, hoverTranslateCache.get(cacheKey), settings);
     return;
   }
   
-
   try {
     const res = await requestTranslation({
       text: text,
@@ -1919,10 +2031,8 @@ async function handleHoverTranslate(element, settings) {
       useAutoDetect: false // Fixed Target→Native for hover
     });
     
-
     if (res?.ok && res.result?.translation) {
       const translation = res.result.translation;
-
       hoverTranslateCache.set(cacheKey, translation);
       updateHoverContent(placeholder, translation, settings);
     } else {
@@ -1992,11 +2102,10 @@ function createHoverPlaceholder(element, settings) {
     translationEl.appendChild(icon);
   }
 
-  // Add loading icon
-  const loadingIcon = document.createElement('img');
-  loadingIcon.src = chrome.runtime.getURL('assets/icons/loading.gif');
-  loadingIcon.className = 'bt-hover-loading-icon';
-  translationEl.appendChild(loadingIcon);
+  // Add modern CSS spinner instead of GIF
+  const loadingSpinner = document.createElement('span');
+  loadingSpinner.className = 'bt-spinner';
+  translationEl.appendChild(loadingSpinner);
   
   translationEl.dataset.btInjected = 'true';
   
@@ -2018,9 +2127,9 @@ function updateHoverContent(element, translation, settings, isError = false) {
   element.innerHTML = ''; // Clear content
   if (icon) element.appendChild(icon);
   
-  // Append translation text
+  // Append translation text with HTML formatting
   const textSpan = document.createElement('span');
-  textSpan.textContent = translation;
+  textSpan.innerHTML = translation; // Use innerHTML to render HTML tags
   element.appendChild(textSpan);
   
   // Apply error styling if needed
@@ -2131,8 +2240,25 @@ function replaceTextContent(element, newText) {
 }
 
 function clearAllHoverTranslations() {
+  // 1. Remove standard block translations
   document.querySelectorAll('.bt-hover-translation').forEach(el => el.remove());
   
+  // 2. Remove node-based injected content (Legacy)
+  document.querySelectorAll('.bt-injected-content').forEach(el => el.remove());
+  
+  // 3. Cleanup Wrappers (Unwrap)
+  document.querySelectorAll('[data-transkit-wrapper]').forEach(wrapper => {
+    const originalSpan = wrapper.querySelector('[data-transkit-original]');
+    if (originalSpan) {
+      // Move original text nodes back to parent
+      while (originalSpan.firstChild) {
+        wrapper.parentNode.insertBefore(originalSpan.firstChild, wrapper);
+      }
+    }
+    wrapper.remove();
+  });
+  
+  // 4. Cleanup original elements (Block mode replace)
   document.querySelectorAll('[data-bt-original]').forEach(el => {
     replaceTextContent(el, el.dataset.btOriginal);
     delete el.dataset.btOriginal;
@@ -2140,9 +2266,10 @@ function clearAllHoverTranslations() {
     el.classList.remove('bt-hover-translated');
   });
   
-  document.querySelectorAll('[data-bt-translated]').forEach(el => {
-    delete el.dataset.btTranslated;
-    el.classList.remove('bt-hover-original');
+  // 5. Cleanup granular mode markers
+  document.querySelectorAll('[data-transkit-translated]').forEach(el => {
+    el.removeAttribute('data-transkit-translated');
+    el.classList.remove('bt-hover-translated');
   });
   
   currentHoveredElement = null;
