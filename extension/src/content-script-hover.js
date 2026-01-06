@@ -268,7 +268,7 @@ function registerHoverToggleShortcut() {
   document.addEventListener('keydown', async (e) => {
     const settings = await getSettings();
     const shortcut = settings.hoverToggleShortcut || {
-      key: "H",
+      key: "O",
       ctrl: true,
       shift: true,
       alt: false
