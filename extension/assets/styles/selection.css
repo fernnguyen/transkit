@@ -1,3 +1,6 @@
+@import url("./tokens.css");
+@import url("./common.css");
+
 /* Select-to-Translate Styles */
 
 .bt-translate-icon {
@@ -224,7 +227,7 @@
 }
 
 .bt-selection-copy-btn:hover {
-  color: var(--bt-color-primary);
+  color: var(--bt-color-primary-background);
   border-color: var(--bt-color-primary-border);
   background: var(--bt-color-primary-background);
   box-shadow: var(--bt-shadow-default);
@@ -259,6 +262,7 @@
   border-radius: var(--bt-radius-small);
   font-size: var(--bt-font-size-small);
   background: var(--bt-color-background-default);
+  color: var(--bt-color-text-default);
   cursor: pointer;
   transition: border-color 0.2s ease;
 }
@@ -270,7 +274,7 @@
 
 .bt-native-lang {
   font-weight: 500;
-  color: var(--bt-color-primary);
+  color: var(--bt-color-primary-background);
 }
 
 .bt-selection-text {
@@ -319,7 +323,7 @@
 }
 
 .bt-selection-settings {
-  color: var(--bt-color-primary);
+  color: var(--bt-color-primary-background);
   text-decoration: none;
   transition: opacity 0.2s ease;
   font-weight: 500;
