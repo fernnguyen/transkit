@@ -29,7 +29,10 @@ const commonStyles = {
 
 // Global error handler for extension context invalidation
 window.addEventListener('error', (event) => {
-  if (event.error && event.error.message && event.error.message.includes('Extension context invalidated')) {
+  if (event.error && event.error.message && 
+      (event.error.message.includes('Extension context invalidated') ||
+       event.error.message.includes('Could not establish connection') ||
+       event.error.message.includes('receiving end does not exist'))) {
     console.log('TransKit: Caught global extension context invalidation error');
     cleanupExtensionElements();
     event.preventDefault(); // Prevent the error from being logged to console
@@ -38,7 +41,10 @@ window.addEventListener('error', (event) => {
 
 // Global unhandled promise rejection handler
 window.addEventListener('unhandledrejection', (event) => {
-  if (event.reason && event.reason.message && event.reason.message.includes('Extension context invalidated')) {
+  if (event.reason && event.reason.message && 
+      (event.reason.message.includes('Extension context invalidated') ||
+       event.reason.message.includes('Could not establish connection') ||
+       event.reason.message.includes('receiving end does not exist'))) {
     console.log('TransKit: Caught unhandled promise rejection for extension context invalidation');
     cleanupExtensionElements();
     event.preventDefault(); // Prevent the error from being logged to console
@@ -52,28 +58,46 @@ window.addEventListener('unhandledrejection', (event) => {
       return;
     }
     
-    const mod = await import(chrome.runtime.getURL("src/common/language-map.js"));
-    normalizeLanguageToCode = mod.normalizeLanguageToCode;
-    
-    const i18nMod = await import(chrome.runtime.getURL("src/common/i18n.js"));
-    i18n = i18nMod.i18n;
+    // Wrap all chrome.runtime calls in try-catch
+    let mod, i18nMod;
+    try {
+      mod = await import(chrome.runtime.getURL("src/common/language-map.js"));
+      normalizeLanguageToCode = mod.normalizeLanguageToCode;
+      
+      i18nMod = await import(chrome.runtime.getURL("src/common/i18n.js"));
+      i18n = i18nMod.i18n;
+    } catch (importError) {
+      if (importError.message.includes('Extension context invalidated') || 
+          importError.message.includes('Could not establish connection')) {
+        console.log('TransKit: Extension context invalidated during import');
+        cleanupExtensionElements();
+        return;
+      }
+      throw importError;
+    }
     
     // Initialize i18n with current settings
     getSettings().then(settings => {
       if (settings.interfaceLanguage) {
         i18n.setLanguage(settings.interfaceLanguage);
       }
+    }).catch(err => {
+      console.log('TransKit: Error initializing i18n:', err.message);
     });
 
     // Listen for setting changes
-    chrome.storage.onChanged.addListener((changes, namespace) => {
-      if (namespace === 'local' && changes.translatorSettings) {
-        const newSettings = changes.translatorSettings.newValue;
-        if (newSettings && newSettings.interfaceLanguage) {
-          i18n.setLanguage(newSettings.interfaceLanguage);
+    try {
+      chrome.storage.onChanged.addListener((changes, namespace) => {
+        if (namespace === 'local' && changes.translatorSettings) {
+          const newSettings = changes.translatorSettings.newValue;
+          if (newSettings && newSettings.interfaceLanguage) {
+            i18n.setLanguage(newSettings.interfaceLanguage);
+          }
         }
-      }
-    });
+      });
+    } catch (storageError) {
+      console.log('TransKit: Error setting up storage listener:', storageError.message);
+    }
     
     injectGlobalStylesheet();
     registerAutoDetection();
@@ -85,7 +109,8 @@ window.addEventListener('unhandledrejection', (event) => {
     registerHoverToggleShortcut();
   } catch (error) {
     console.log('TransKit: Bootstrap failed:', error.message);
-    if (error.message.includes('Extension context invalidated')) {
+    if (error.message.includes('Extension context invalidated') || 
+        error.message.includes('Could not establish connection')) {
       // Extension was reloaded, clean up and exit gracefully
       cleanupExtensionElements();
     }
@@ -107,6 +132,10 @@ function injectGlobalStylesheet() {
     }
   } catch (error) {
     console.log('TransKit: Error injecting stylesheet:', error.message);
+    if (error.message.includes('Extension context invalidated') || 
+        error.message.includes('Could not establish connection')) {
+      cleanupExtensionElements();
+    }
   }
 }
 
@@ -199,6 +228,11 @@ async function getSettings() {
   }
   
   try {
+    // Double-check context validity before making the call
+    if (!isExtensionContextValid()) {
+      throw new Error('Extension context invalidated');
+    }
+    
     const res = await chrome.runtime.sendMessage({ type: "get-settings" });
     if (res?.ok) {
       // Initialize i18n with the fetched language setting
@@ -209,7 +243,7 @@ async function getSettings() {
     }
   } catch (error) {
     console.log('TransKit: Error getting settings:', error.message);
-    if (error.message.includes('Extension context invalidated')) {
+    if (error.message.includes('Extension context invalidated') || error.message.includes('Could not establish connection')) {
       cleanupExtensionElements();
     }
   }
@@ -232,9 +266,14 @@ async function requestTranslation(payload) {
   }
   
   try {
+    // Double-check context validity before making the call
+    if (!isExtensionContextValid()) {
+      throw new Error('Extension context invalidated');
+    }
+    
     return chrome.runtime.sendMessage({ type: "translate", payload });
   } catch (error) {
-    if (error.message.includes('Extension context invalidated')) {
+    if (error.message.includes('Extension context invalidated') || error.message.includes('Could not establish connection')) {
       cleanupExtensionElements();
       throw new Error(i18n.t("toast.extensionUpdated"));
     }
@@ -666,11 +705,17 @@ function buildInlineSuggestion(element, translatedText, providerInfo, position =
   // Remove from DOM temporarily to continue setup
   container.remove();
   
-  const iconUrl = chrome.runtime.getURL('assets/icons/icon-19.png');
+  let iconUrl;
+  try {
+    iconUrl = isExtensionContextValid() ? chrome.runtime.getURL('assets/icons/icon-19.png') : '';
+  } catch (error) {
+    console.log('TransKit: Error getting icon URL:', error.message);
+    iconUrl = '';
+  }
   
   container.innerHTML = `
     <div class="bt-suggestion-content">
-      <img src="${iconUrl}" class="bt-suggestion-icon" alt="TransKit" />
+      ${iconUrl ? `<img src="${iconUrl}" class="bt-suggestion-icon" alt="TransKit" />` : '<span class="bt-suggestion-icon">🔄</span>'}
       <span class="bt-suggestion-text">${translatedText}</span>
       <kbd class="bt-suggestion-tab-hint">Tab</kbd>
     </div>
@@ -1077,10 +1122,15 @@ async function toggleInstantDomainForCurrentUrl() {
       });
       
       // Save settings
-      await chrome.runtime.sendMessage({
-        type: "set-settings",
-        settings: settings
-      });
+      try {
+        await safeRuntimeCall(() => chrome.runtime.sendMessage({
+          type: "set-settings",
+          settings: settings
+        }));
+      } catch (error) {
+        console.log('TransKit: Error saving settings:', error.message);
+        return;
+      }
       
       // Show success toast
       const enabledText = i18n.t("toast.instantEnabled") || "⚡ Instant translate enabled";
@@ -1094,10 +1144,15 @@ async function toggleInstantDomainForCurrentUrl() {
     domain.enabled = !domain.enabled;
 
     // Update settings
-    await chrome.runtime.sendMessage({
-      type: "set-settings",
-      settings: settings
-    });
+    try {
+      await safeRuntimeCall(() => chrome.runtime.sendMessage({
+        type: "set-settings",
+        settings: settings
+      }));
+    } catch (error) {
+      console.log('TransKit: Error updating settings:', error.message);
+      return;
+    }
 
     // Show toast notification with domain name
     const status = domain.enabled
@@ -1173,16 +1228,28 @@ function registerInstantToggleShortcut() {
 function registerInstantLabelIndicator() {
   // Create label element
   const label = document.createElement('div');
-  const iconUrl = chrome.runtime.getURL('assets/icons/icon-19.png');
+  let iconUrl;
+  try {
+    iconUrl = isExtensionContextValid() ? chrome.runtime.getURL('assets/icons/icon-19.png') : '';
+  } catch (error) {
+    console.log('TransKit: Error getting icon URL for label:', error.message);
+    iconUrl = '';
+  }
   const labelText = document.createElement('span');
 
-  // Create img element
-  const img = document.createElement('img');
-  img.src = iconUrl;
-  img.alt = 'TransKit';
-  img.style.cssText = 'width: 14px; height: 14px; flex-shrink: 0;';
-
-  label.appendChild(img);
+  // Create img element or fallback
+  if (iconUrl) {
+    const img = document.createElement('img');
+    img.src = iconUrl;
+    img.alt = 'TransKit';
+    img.style.cssText = 'width: 14px; height: 14px; flex-shrink: 0;';
+    label.appendChild(img);
+  } else {
+    const fallbackIcon = document.createElement('span');
+    fallbackIcon.textContent = '⚡';
+    fallbackIcon.style.cssText = 'width: 14px; height: 14px; flex-shrink: 0; display: inline-block; text-align: center;';
+    label.appendChild(fallbackIcon);
+  }
   label.appendChild(labelText);
 
   label.style.cssText = `
@@ -1316,8 +1383,19 @@ function showTranslateIcon(x, y, selection) {
     icon.className = 'bt-translate-icon bt-vars-container';
     
     // Use extension icon instead of SVG
-    const iconUrl = chrome.runtime.getURL('assets/icons/icon-32.png');
-    icon.innerHTML = `<img src="${iconUrl}" width="24" height="24" alt="Translate" />`;
+    let iconUrl;
+    try {
+      iconUrl = isExtensionContextValid() ? chrome.runtime.getURL('assets/icons/icon-32.png') : '';
+    } catch (error) {
+      console.log('TransKit: Error getting icon URL for translate icon:', error.message);
+      iconUrl = '';
+    }
+    
+    if (iconUrl) {
+      icon.innerHTML = `<img src="${iconUrl}" width="24" height="24" alt="Translate" />`;
+    } else {
+      icon.innerHTML = `<span style="font-size: 24px; width: 24px; height: 24px; display: inline-block; text-align: center;">🔄</span>`;
+    }
     
     icon.style.position = 'fixed';
     icon.style.zIndex = '9999999999';
@@ -1413,33 +1491,109 @@ function getAvailableViewport() {
   };
 }
 
+// Helper function to safely make chrome.runtime calls
+async function safeRuntimeCall(callback) {
+  if (!isExtensionContextValid()) {
+    throw new Error('Extension context invalidated');
+  }
+  
+  try {
+    return await callback();
+  } catch (error) {
+    if (error.message.includes('Extension context invalidated') || 
+        error.message.includes('Could not establish connection') ||
+        error.message.includes('receiving end does not exist')) {
+      cleanupExtensionElements();
+      throw new Error('Extension context invalidated');
+    }
+    throw error;
+  }
+}
+
 // Helper function to clean up extension elements when context is invalidated
 function cleanupExtensionElements() {
   try {
     // Remove any existing popups or icons
-    hideTranslationPopup();
-    hideTranslateIcon();
+    if (typeof hideTranslationPopup === 'function') {
+      hideTranslationPopup();
+    }
+    if (typeof hideTranslateIcon === 'function') {
+      hideTranslateIcon();
+    }
     
     // Remove any inline suggestions
     if (typeof hideSuggestion === 'function') {
       hideSuggestion();
     }
     
-    // Clear any timers or intervals
+    // Clear current suggestion
+    if (currentSuggestion) {
+      try {
+        currentSuggestion.destroy();
+      } catch (e) {
+        // Ignore errors during cleanup
+      }
+      currentSuggestion = null;
+    }
+    
+    // Clear timers
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+      debounceTimer = null;
+    }
+    
+    if (instantTimer) {
+      clearTimeout(instantTimer);
+      instantTimer = null;
+    }
+    
+    // Clear any global timers
     if (window.transkitCleanupTimer) {
       clearTimeout(window.transkitCleanupTimer);
+      window.transkitCleanupTimer = null;
     }
+    
+    // Remove event listeners if they exist
+    if (currentKeyHandler) {
+      try {
+        window.removeEventListener("keydown", currentKeyHandler, true);
+        window.removeEventListener("keyup", currentKeyHandler, true);
+        document.removeEventListener("keydown", currentKeyHandler, true);
+        document.removeEventListener("keyup", currentKeyHandler, true);
+      } catch (e) {
+        // Ignore errors during cleanup
+      }
+      currentKeyHandler = null;
+    }
+    
+    // Remove any extension-created elements
+    const extensionElements = document.querySelectorAll('.bt-inline-suggestion, .bt-selection-popup, .bt-selection-icon, .bt-toast-notify, .bt-hover-popup');
+    extensionElements.forEach(el => {
+      try {
+        el.remove();
+      } catch (e) {
+        // Ignore errors during cleanup
+      }
+    });
     
     console.log('TransKit: Cleaned up extension elements due to context invalidation');
   } catch (error) {
-    // Ignore cleanup errors
+    // Ignore cleanup errors - we're already in an error state
+    console.log('TransKit: Error during cleanup (ignored):', error.message);
   }
 }
 
 // Helper function to check if extension context is valid
 function isExtensionContextValid() {
   try {
-    return !!(chrome.runtime && chrome.runtime.id);
+    // Check if chrome.runtime exists and has an id
+    if (!chrome || !chrome.runtime || !chrome.runtime.id) {
+      return false;
+    }
+    
+    // Try to access a runtime property to ensure context is truly valid
+    chrome.runtime.getURL('test');
+    return true;
   } catch (error) {
     return false;
   }
@@ -1519,13 +1673,19 @@ async function showTranslationPopup(selectionRect, text, iconPosition) {
     const settings = await getSettings();
     
     const popup = document.createElement('div');
-    const iconUrl = chrome.runtime.getURL('assets/icons/icon-19.png');
+    let iconUrl;
+    try {
+      iconUrl = isExtensionContextValid() ? chrome.runtime.getURL('assets/icons/icon-19.png') : '';
+    } catch (error) {
+      console.log('TransKit: Error getting icon URL for popup:', error.message);
+      iconUrl = '';
+    }
     popup.className = 'bt-selection-popup bt-vars-container';
   popup.innerHTML = `
     <div class="bt-selection-bg-pattern"></div>
     <div class="bt-selection-header">
       <span class="bt-selection-title">
-        <img src="${iconUrl}" width="19" height="19" alt="Translate"  style="float:left;margin-right:4px" /> 
+        ${iconUrl ? `<img src="${iconUrl}" width="19" height="19" alt="Translate" style="float:left;margin-right:4px" />` : '<span style="float:left;margin-right:4px;font-size:19px;">🔄</span>'} 
         <span>${i18n.t("selection.title")}</span>
       </span>
       <button class="bt-selection-close">×</button>
@@ -1697,10 +1857,14 @@ async function showTranslationPopup(selectionRect, text, iconPosition) {
     const targetLang = popup.querySelector('.bt-selection-target-select').value;
     
     // Save preference
-    chrome.runtime.sendMessage({ 
-      type: 'set-settings', 
-      settings: { ...settings, selectionLastSource: e.target.value } 
-    });
+    try {
+      safeRuntimeCall(() => chrome.runtime.sendMessage({ 
+        type: 'set-settings', 
+        settings: { ...settings, selectionLastSource: e.target.value } 
+      }));
+    } catch (error) {
+      console.log('TransKit: Error saving source preference:', error.message);
+    }
 
     translateSelectionWithSource(text, e.target.value, popup, providerId, targetLang);
   });
@@ -1712,10 +1876,14 @@ async function showTranslationPopup(selectionRect, text, iconPosition) {
 
     // Save preference
     console.log('Saving selectionLastTarget:', e.target.value);
-    chrome.runtime.sendMessage({ 
-      type: 'set-settings', 
-      settings: { ...settings, selectionLastTarget: e.target.value } 
-    });
+    try {
+      safeRuntimeCall(() => chrome.runtime.sendMessage({ 
+        type: 'set-settings', 
+        settings: { ...settings, selectionLastTarget: e.target.value } 
+      }));
+    } catch (error) {
+      console.log('TransKit: Error saving target preference:', error.message);
+    }
 
     translateSelectionWithSource(text, sourceLang, popup, providerId, e.target.value);
   });
@@ -1733,7 +1901,11 @@ async function showTranslationPopup(selectionRect, text, iconPosition) {
   // Settings link
   popup.querySelector('.bt-selection-settings').addEventListener('click', (e) => {
     e.preventDefault();
-    chrome.runtime.sendMessage({ type: 'open-options' });
+    try {
+      safeRuntimeCall(() => chrome.runtime.sendMessage({ type: 'open-options' }));
+    } catch (error) {
+      console.log('TransKit: Error opening options:', error.message);
+    }
   });
 
   // Copy button
@@ -2421,15 +2593,36 @@ function createHoverPlaceholder(element, settings) {
   
   // Add TransKit Icon at start (if enabled)
   if (style.showIcon !== false) {
-    const icon = document.createElement('img');
-    icon.src = chrome.runtime.getURL('assets/icons/icon-19.png'); // Use small icon
-    icon.className = 'bt-hover-icon';
-    icon.style.width = '14px';
-    icon.style.height = '14px';
-    icon.style.verticalAlign = 'middle';
-    icon.style.marginRight = '6px';
-    icon.style.display = 'inline-block';
-    translationEl.appendChild(icon);
+    let iconSrc;
+    try {
+      iconSrc = isExtensionContextValid() ? chrome.runtime.getURL('assets/icons/icon-19.png') : '';
+    } catch (error) {
+      console.log('TransKit: Error getting icon URL for hover:', error.message);
+      iconSrc = '';
+    }
+    
+    if (iconSrc) {
+      const icon = document.createElement('img');
+      icon.src = iconSrc; // Use small icon
+      icon.className = 'bt-hover-icon';
+      icon.style.width = '14px';
+      icon.style.height = '14px';
+      icon.style.verticalAlign = 'middle';
+      icon.style.marginRight = '6px';
+      icon.style.display = 'inline-block';
+      translationEl.appendChild(icon);
+    } else {
+      const fallbackIcon = document.createElement('span');
+      fallbackIcon.textContent = '🔄';
+      fallbackIcon.className = 'bt-hover-icon';
+      fallbackIcon.style.width = '14px';
+      fallbackIcon.style.height = '14px';
+      fallbackIcon.style.verticalAlign = 'middle';
+      fallbackIcon.style.marginRight = '6px';
+      fallbackIcon.style.display = 'inline-block';
+      fallbackIcon.style.fontSize = '12px';
+      translationEl.appendChild(fallbackIcon);
+    }
   }
 
   // Add modern CSS spinner instead of GIF
@@ -2668,10 +2861,15 @@ async function toggleHoverDomainForCurrentUrl() {
         enabled: true
       });
       
-      await chrome.runtime.sendMessage({
-        type: "set-settings",
-        settings: settings
-      });
+      try {
+        await safeRuntimeCall(() => chrome.runtime.sendMessage({
+          type: "set-settings",
+          settings: settings
+        }));
+      } catch (error) {
+        console.log('TransKit: Error saving hover domain settings:', error.message);
+        return;
+      }
       
       showToastBottomRight(`✨ Hover translate enabled for ${domain}`);
       return;
@@ -2681,10 +2879,15 @@ async function toggleHoverDomainForCurrentUrl() {
     const domain = settings.hoverTranslateDomains[matchingDomainIndex];
     domain.enabled = !domain.enabled;
 
-    await chrome.runtime.sendMessage({
-      type: "set-settings",
-      settings: settings
-    });
+    try {
+      await safeRuntimeCall(() => chrome.runtime.sendMessage({
+        type: "set-settings",
+        settings: settings
+      }));
+    } catch (error) {
+      console.log('TransKit: Error updating hover domain settings:', error.message);
+      return;
+    }
 
     const status = domain.enabled
       ? "✨ Hover translate enabled"
