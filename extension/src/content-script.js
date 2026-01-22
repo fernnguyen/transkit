@@ -27,47 +27,86 @@ const commonStyles = {
   zIndex: "9999999999"
 };
 
-(async function bootstrap() {
-  const mod = await import(chrome.runtime.getURL("src/common/language-map.js"));
-  normalizeLanguageToCode = mod.normalizeLanguageToCode;
-  
-  const i18nMod = await import(chrome.runtime.getURL("src/common/i18n.js"));
-  i18n = i18nMod.i18n;
-  
-  // Initialize i18n with current settings
-  getSettings().then(settings => {
-    if (settings.interfaceLanguage) {
-      i18n.setLanguage(settings.interfaceLanguage);
-    }
-  });
+// Global error handler for extension context invalidation
+window.addEventListener('error', (event) => {
+  if (event.error && event.error.message && event.error.message.includes('Extension context invalidated')) {
+    console.log('TransKit: Caught global extension context invalidation error');
+    cleanupExtensionElements();
+    event.preventDefault(); // Prevent the error from being logged to console
+  }
+});
 
-  // Listen for setting changes
-  chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'local' && changes.translatorSettings) {
-      const newSettings = changes.translatorSettings.newValue;
-      if (newSettings && newSettings.interfaceLanguage) {
-        i18n.setLanguage(newSettings.interfaceLanguage);
-      }
+// Global unhandled promise rejection handler
+window.addEventListener('unhandledrejection', (event) => {
+  if (event.reason && event.reason.message && event.reason.message.includes('Extension context invalidated')) {
+    console.log('TransKit: Caught unhandled promise rejection for extension context invalidation');
+    cleanupExtensionElements();
+    event.preventDefault(); // Prevent the error from being logged to console
+  }
+});
+
+(async function bootstrap() {
+  try {
+    if (!isExtensionContextValid()) {
+      console.log('TransKit: Extension context not available during bootstrap');
+      return;
     }
-  });
-  
-  injectGlobalStylesheet();
-  registerAutoDetection();
-  registerInstantMode();
-  registerSelectionMode();
-  registerInstantToggleShortcut();
-  registerInstantLabelIndicator();
-  registerHoverTranslate();
-  registerHoverToggleShortcut();
+    
+    const mod = await import(chrome.runtime.getURL("src/common/language-map.js"));
+    normalizeLanguageToCode = mod.normalizeLanguageToCode;
+    
+    const i18nMod = await import(chrome.runtime.getURL("src/common/i18n.js"));
+    i18n = i18nMod.i18n;
+    
+    // Initialize i18n with current settings
+    getSettings().then(settings => {
+      if (settings.interfaceLanguage) {
+        i18n.setLanguage(settings.interfaceLanguage);
+      }
+    });
+
+    // Listen for setting changes
+    chrome.storage.onChanged.addListener((changes, namespace) => {
+      if (namespace === 'local' && changes.translatorSettings) {
+        const newSettings = changes.translatorSettings.newValue;
+        if (newSettings && newSettings.interfaceLanguage) {
+          i18n.setLanguage(newSettings.interfaceLanguage);
+        }
+      }
+    });
+    
+    injectGlobalStylesheet();
+    registerAutoDetection();
+    registerInstantMode();
+    registerSelectionMode();
+    registerInstantToggleShortcut();
+    registerInstantLabelIndicator();
+    registerHoverTranslate();
+    registerHoverToggleShortcut();
+  } catch (error) {
+    console.log('TransKit: Bootstrap failed:', error.message);
+    if (error.message.includes('Extension context invalidated')) {
+      // Extension was reloaded, clean up and exit gracefully
+      cleanupExtensionElements();
+    }
+  }
 })();
 
 function injectGlobalStylesheet() {
-  const href = chrome.runtime.getURL("assets/styles/dialogs.css");
-  if (![...document.styleSheets].some((s) => s.href === href)) {
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href = href;
-    document.head.appendChild(link);
+  try {
+    if (!isExtensionContextValid()) {
+      return;
+    }
+    
+    const href = chrome.runtime.getURL("assets/styles/dialogs.css");
+    if (![...document.styleSheets].some((s) => s.href === href)) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = href;
+      document.head.appendChild(link);
+    }
+  } catch (error) {
+    console.log('TransKit: Error injecting stylesheet:', error.message);
   }
 }
 
@@ -145,8 +184,8 @@ function attachStylesheetToShadowRoot(shadowRoot) {
 
 
 async function getSettings() {
-  if (typeof chrome === 'undefined' || !chrome.runtime) {
-    showToast(i18n.t("toast.extensionUpdated"));
+  if (!isExtensionContextValid()) {
+    // Don't show toast, just return default settings
     return {
       enabled: false,
       nativeLanguageCode: "vi",
@@ -159,14 +198,22 @@ async function getSettings() {
     };
   }
   
-  const res = await chrome.runtime.sendMessage({ type: "get-settings" });
-  if (res?.ok) {
-    // Initialize i18n with the fetched language setting
-    if (i18n) {
-      i18n.setLanguage(res.settings.interfaceLanguage || "en");
+  try {
+    const res = await chrome.runtime.sendMessage({ type: "get-settings" });
+    if (res?.ok) {
+      // Initialize i18n with the fetched language setting
+      if (i18n) {
+        i18n.setLanguage(res.settings.interfaceLanguage || "en");
+      }
+      return res.settings;
     }
-    return res.settings;
+  } catch (error) {
+    console.log('TransKit: Error getting settings:', error.message);
+    if (error.message.includes('Extension context invalidated')) {
+      cleanupExtensionElements();
+    }
   }
+  
   return {
     enabled: true,
     nativeLanguageCode: "vi",
@@ -180,10 +227,19 @@ async function getSettings() {
 }
 
 async function requestTranslation(payload) {
-  if (typeof chrome === 'undefined' || !chrome.runtime) {
+  if (!isExtensionContextValid()) {
     throw new Error(i18n.t("toast.extensionUpdated"));
   }
-  return chrome.runtime.sendMessage({ type: "translate", payload });
+  
+  try {
+    return chrome.runtime.sendMessage({ type: "translate", payload });
+  } catch (error) {
+    if (error.message.includes('Extension context invalidated')) {
+      cleanupExtensionElements();
+      throw new Error(i18n.t("toast.extensionUpdated"));
+    }
+    throw error;
+  }
 }
 
 function removeTranslationCommandSuffix(element) {
@@ -529,13 +585,16 @@ function buildInlineSuggestion(element, translatedText, providerInfo, position =
   // Smart horizontal positioning
   let leftPos = rect.left;
 
+  // Get available viewport considering panels
+  const viewport = getAvailableViewport();
+
   // If popup is wider than input, center it relative to input
   if (popupWidth > inputWidth) {
     leftPos = rect.left - (popupWidth - inputWidth) / 2;
 
-    // Keep popup within viewport
-    const maxLeft = window.innerWidth - popupWidth - 10;
-    const minLeft = 10;
+    // Keep popup within viewport considering panel offsets
+    const maxLeft = viewport.width + viewport.leftOffset - popupWidth - 10;
+    const minLeft = viewport.leftOffset + 10;
     leftPos = Math.max(minLeft, Math.min(leftPos, maxLeft));
   }
 
@@ -547,7 +606,7 @@ function buildInlineSuggestion(element, translatedText, providerInfo, position =
   if (position === 'auto') {
     // Calculate available space above and below
     const spaceAbove = rect.top;
-    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceBelow = viewport.height - rect.bottom;
 
     // Estimate popup height (will be more accurate after render)
     const estimatedPopupHeight = 100;
@@ -566,12 +625,46 @@ function buildInlineSuggestion(element, translatedText, providerInfo, position =
 
   // Set vertical position based on final decision
   if (finalPosition === 'top') {
-    container.style.bottom = `${window.innerHeight - rect.top + 8}px`;
+    container.style.bottom = `${viewport.height - rect.top + 8}px`;
     container.classList.add('bt-popup-top');
   } else {
     container.style.top = `${rect.bottom + 8}px`;
     container.classList.add('bt-popup-bottom');
   }
+  
+  // Add to DOM first to get dimensions
+  document.body.appendChild(container);
+  
+  // Get container dimensions and adjust position if needed
+  const containerRect = container.getBoundingClientRect();
+  
+  // Ensure container stays within viewport bounds
+  if (finalPosition === 'bottom' && containerRect.bottom > viewport.height - 10) {
+    // If bottom position causes overflow, try top position
+    if (rect.top - containerRect.height - 8 >= 10) {
+      container.style.top = '';
+      container.style.bottom = `${viewport.height - rect.top + 8}px`;
+      container.classList.remove('bt-popup-bottom');
+      container.classList.add('bt-popup-top');
+    } else {
+      // Adjust to fit within viewport
+      container.style.top = `${Math.max(10, viewport.height - containerRect.height - 10)}px`;
+    }
+  } else if (finalPosition === 'top' && containerRect.top < 10) {
+    // If top position causes overflow, try bottom position
+    if (rect.bottom + containerRect.height + 8 <= viewport.height - 10) {
+      container.style.bottom = '';
+      container.style.top = `${rect.bottom + 8}px`;
+      container.classList.remove('bt-popup-top');
+      container.classList.add('bt-popup-bottom');
+    } else {
+      // Adjust to fit within viewport
+      container.style.bottom = `${Math.max(10, viewport.height - containerRect.height - 10)}px`;
+    }
+  }
+  
+  // Remove from DOM temporarily to continue setup
+  container.remove();
   
   const iconUrl = chrome.runtime.getURL('assets/icons/icon-19.png');
   
@@ -1209,43 +1302,57 @@ function registerInstantLabelIndicator() {
 function showTranslateIcon(x, y, selection) {
   hideTranslateIcon();
   
-  const range = selection.getRangeAt(0);
-  const rect = range.getBoundingClientRect();
-  
-  const icon = document.createElement('div');
-  icon.className = 'bt-translate-icon bt-vars-container';
-  
-  // Use extension icon instead of SVG
-  const iconUrl = chrome.runtime.getURL('assets/icons/icon-32.png');
-  icon.innerHTML = `<img src="${iconUrl}" width="24" height="24" alt="Translate" />`;
-  
-  icon.style.position = 'fixed';
-  icon.style.zIndex = '9999999999';
-  
-  // Position near cursor - choose top or bottom based on viewport
-  const viewportHeight = window.innerHeight;
-  const spaceBelow = viewportHeight - y;
-  const spaceAbove = y;
-  
-  // If more space below, show below cursor; otherwise show above
-  if (spaceBelow > 200 || spaceBelow > spaceAbove) {
-    icon.style.left = `${x - 20}px`;
-    icon.style.top = `${y + 12}px`;
-    icon.dataset.position = 'bottom';
-  } else {
-    icon.style.left = `${x - 20}px`;
-    icon.style.top = `${y - 48}px`;
-    icon.dataset.position = 'top';
+  // Check if extension context is still valid
+  if (!chrome.runtime?.id) {
+    console.log('TransKit: Extension context invalidated, skipping icon creation');
+    return;
   }
   
-  icon.addEventListener('click', (e) => {
-    e.stopPropagation();
-    // Pass selection rect instead of icon rect for better positioning
-    showTranslationPopup(rect, selectedText, icon.dataset.position);
-  });
-  
-  document.body.appendChild(icon);
-  selectionIcon = icon;
+  try {
+    const range = selection.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+    
+    const icon = document.createElement('div');
+    icon.className = 'bt-translate-icon bt-vars-container';
+    
+    // Use extension icon instead of SVG
+    const iconUrl = chrome.runtime.getURL('assets/icons/icon-32.png');
+    icon.innerHTML = `<img src="${iconUrl}" width="24" height="24" alt="Translate" />`;
+    
+    icon.style.position = 'fixed';
+    icon.style.zIndex = '9999999999';
+    
+    // Position near cursor - choose top or bottom based on viewport
+    const viewport = getAvailableViewport();
+    const spaceBelow = viewport.height - y;
+    const spaceAbove = y;
+    
+    // If more space below, show below cursor; otherwise show above
+    if (spaceBelow > 200 || spaceBelow > spaceAbove) {
+      icon.style.left = `${x - 20}px`;
+      icon.style.top = `${y + 12}px`;
+      icon.dataset.position = 'bottom';
+    } else {
+      icon.style.left = `${x - 20}px`;
+      icon.style.top = `${y - 48}px`;
+      icon.dataset.position = 'top';
+    }
+    
+    icon.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // Pass selection rect instead of icon rect for better positioning
+      showTranslationPopup(rect, selectedText, icon.dataset.position);
+    });
+    
+    document.body.appendChild(icon);
+    selectionIcon = icon;
+  } catch (error) {
+    console.log('TransKit: Error creating translate icon:', error.message);
+    // Extension context might be invalidated, clean up
+    if (error.message.includes('Extension context invalidated')) {
+      cleanupExtensionElements();
+    }
+  }
 }
 
 function hideTranslateIcon() {
@@ -1255,15 +1362,165 @@ function hideTranslateIcon() {
   }
 }
 
-async function showTranslationPopup(selectionRect, text, iconPosition) {
-  hideTranslationPopup();
-
-  // Fetch settings first to ensure i18n is updated
-  const settings = await getSettings();
+// Helper function to get actual available viewport considering panels/devtools
+function getAvailableViewport() {
+  // Get the document's visible area
+  const documentElement = document.documentElement;
+  const body = document.body;
   
-  const popup = document.createElement('div');
-  const iconUrl = chrome.runtime.getURL('assets/icons/icon-19.png');
-  popup.className = 'bt-selection-popup bt-vars-container';
+  // Calculate actual available space
+  // Use document.documentElement.clientWidth/Height which excludes scrollbars
+  // and is more accurate for content positioning
+  const availableWidth = Math.min(
+    window.innerWidth,
+    documentElement.clientWidth,
+    body ? body.clientWidth : window.innerWidth
+  );
+  
+  const availableHeight = Math.min(
+    window.innerHeight,
+    documentElement.clientHeight,
+    body ? body.clientHeight : window.innerHeight
+  );
+  
+  // Also consider if there are any fixed elements that might reduce available space
+  // Check for common panel/sidebar patterns
+  const rightPanels = document.querySelectorAll('[style*="position: fixed"][style*="right: 0"], .devtools-panel, .sidebar-panel');
+  const leftPanels = document.querySelectorAll('[style*="position: fixed"][style*="left: 0"], .left-panel');
+  
+  let rightOffset = 0;
+  let leftOffset = 0;
+  
+  rightPanels.forEach(panel => {
+    const rect = panel.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      rightOffset = Math.max(rightOffset, rect.width);
+    }
+  });
+  
+  leftPanels.forEach(panel => {
+    const rect = panel.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      leftOffset = Math.max(leftOffset, rect.width);
+    }
+  });
+  
+  return {
+    width: Math.max(300, availableWidth - rightOffset - leftOffset), // Minimum 300px
+    height: Math.max(200, availableHeight), // Minimum 200px
+    leftOffset: leftOffset,
+    rightOffset: rightOffset
+  };
+}
+
+// Helper function to clean up extension elements when context is invalidated
+function cleanupExtensionElements() {
+  try {
+    // Remove any existing popups or icons
+    hideTranslationPopup();
+    hideTranslateIcon();
+    
+    // Remove any inline suggestions
+    if (typeof hideSuggestion === 'function') {
+      hideSuggestion();
+    }
+    
+    // Clear any timers or intervals
+    if (window.transkitCleanupTimer) {
+      clearTimeout(window.transkitCleanupTimer);
+    }
+    
+    console.log('TransKit: Cleaned up extension elements due to context invalidation');
+  } catch (error) {
+    // Ignore cleanup errors
+  }
+}
+
+// Helper function to check if extension context is valid
+function isExtensionContextValid() {
+  try {
+    return !!(chrome.runtime && chrome.runtime.id);
+  } catch (error) {
+    return false;
+  }
+}
+
+// Helper function to ensure popup stays within viewport bounds
+function ensurePopupInViewport(popup, selectionRect) {
+  const rect = popup.getBoundingClientRect();
+  const viewport = getAvailableViewport();
+  
+  let adjustedLeft = parseFloat(popup.style.left);
+  let positionChanged = false;
+  
+  // Adjust horizontal position if popup goes off-screen
+  // Consider left and right offsets from panels
+  const maxRight = viewport.width + viewport.leftOffset - 10;
+  const minLeft = viewport.leftOffset + 10;
+  
+  if (rect.right > maxRight) {
+    adjustedLeft = maxRight - rect.width;
+    popup.style.left = `${adjustedLeft}px`;
+    positionChanged = true;
+  }
+  if (rect.left < minLeft) {
+    adjustedLeft = minLeft;
+    popup.style.left = `${adjustedLeft}px`;
+    positionChanged = true;
+  }
+  
+  // Recalculate arrow position if horizontal position changed
+  if (positionChanged && selectionRect) {
+    const selectionCenter = selectionRect.left + (selectionRect.width / 2);
+    const newArrowLeft = selectionCenter - adjustedLeft;
+    // Ensure arrow stays within popup bounds (at least 20px from edges)
+    const clampedArrowLeft = Math.max(20, Math.min(newArrowLeft, rect.width - 20));
+    popup.style.setProperty('--bt-arrow-left', `${clampedArrowLeft}px`);
+  }
+  
+  // Adjust vertical position if popup goes off-screen
+  if (popup.style.top && rect.bottom > viewport.height - 10) {
+    // If using top positioning and popup goes below viewport
+    const newTop = Math.max(10, viewport.height - rect.height - 10);
+    popup.style.top = `${newTop}px`;
+  }
+  
+  if (popup.style.bottom && rect.top < 10) {
+    // If using bottom positioning and popup goes above viewport
+    const newBottom = Math.max(10, viewport.height - rect.height - 10);
+    popup.style.bottom = `${newBottom}px`;
+  }
+}
+
+// Helper function to readjust popup position after content is loaded
+function readjustPopupAfterContentLoad(popup, selectionRect) {
+  // Wait a bit for content to render, then readjust
+  setTimeout(() => {
+    ensurePopupInViewport(popup, selectionRect);
+  }, 100);
+  
+  // Also readjust after a longer delay to catch any async content loading
+  setTimeout(() => {
+    ensurePopupInViewport(popup, selectionRect);
+  }, 500);
+}
+
+async function showTranslationPopup(selectionRect, text, iconPosition) {
+  // Check if extension context is still valid
+  if (!isExtensionContextValid()) {
+    console.log('TransKit: Extension context invalidated, cannot show popup');
+    return;
+  }
+  
+  try {
+    hideTranslationPopup();
+
+    // Fetch settings first to ensure i18n is updated
+    const settings = await getSettings();
+    
+    const popup = document.createElement('div');
+    const iconUrl = chrome.runtime.getURL('assets/icons/icon-19.png');
+    popup.className = 'bt-selection-popup bt-vars-container';
   popup.innerHTML = `
     <div class="bt-selection-bg-pattern"></div>
     <div class="bt-selection-header">
@@ -1307,13 +1564,21 @@ async function showTranslationPopup(selectionRect, text, iconPosition) {
   popup.style.zIndex = '9999999999';
   
   // Center popup based on SELECTION rect
-  const popupWidth = 350;
-  const selectionCenter = selectionRect.left + (selectionRect.width / 2);
-  const left = selectionCenter - (popupWidth / 2);
+  // First, add popup to DOM to get actual dimensions
+  document.body.appendChild(popup);
+  const tempRect = popup.getBoundingClientRect();
+  const actualPopupWidth = tempRect.width;
   
-  // Ensure popup doesn't go off-screen
-  const maxLeft = window.innerWidth - popupWidth - 10;
-  const minLeft = 10;
+  // Get available viewport considering panels
+  const viewport = getAvailableViewport();
+  
+  const selectionCenter = selectionRect.left + (selectionRect.width / 2);
+  const left = selectionCenter - (actualPopupWidth / 2);
+  
+  // Ensure popup doesn't go off-screen horizontally
+  // Consider panel offsets
+  const maxLeft = viewport.width + viewport.leftOffset - actualPopupWidth - 10;
+  const minLeft = viewport.leftOffset + 10;
   const finalLeft = Math.max(minLeft, Math.min(left, maxLeft));
   
   // Calculate arrow position relative to popup
@@ -1321,20 +1586,68 @@ async function showTranslationPopup(selectionRect, text, iconPosition) {
   const arrowLeft = selectionCenter - finalLeft;
   popup.style.setProperty('--bt-arrow-left', `${arrowLeft}px`);
   
-  // Vertical positioning: close to selection
-  // Use selectionRect.bottom/top directly
+  // Vertical positioning: close to selection with overflow check
+  // Get initial popup dimensions after adding to DOM
+  const initialRect = popup.getBoundingClientRect();
+  
+  // Estimate final popup height (accounting for content that will be loaded)
+  // Use a more conservative estimate since content will be added
+  const estimatedPopupHeight = Math.max(initialRect.height, 200); // Minimum 200px for safety
+  
+  // Calculate available space above and below selection
+  const spaceAbove = selectionRect.top;
+  const spaceBelow = viewport.height - selectionRect.bottom;
+  
+  // Determine best position based on available space and estimated popup height
+  let finalPosition = iconPosition;
+  
   if (iconPosition === 'bottom') {
-    popup.style.left = `${finalLeft}px`;
-    popup.style.top = `${selectionRect.bottom + 8}px`; // 8px gap from text
-    popup.classList.add('bt-popup-bottom');
+    // Check if popup fits below selection with some buffer
+    if (selectionRect.bottom + 8 + estimatedPopupHeight > viewport.height - 20) {
+      // Not enough space below, check if there's more space above
+      if (spaceAbove > spaceBelow && spaceAbove >= estimatedPopupHeight + 28) {
+        finalPosition = 'top';
+      }
+    }
   } else {
-    popup.style.left = `${finalLeft}px`;
-    popup.style.bottom = `${window.innerHeight - selectionRect.top + 8}px`; // 8px gap from text
-    popup.classList.add('bt-popup-top');
+    // Check if popup fits above selection with some buffer
+    if (selectionRect.top - 8 - estimatedPopupHeight < 20) {
+      // Not enough space above, check if there's more space below
+      if (spaceBelow > spaceAbove && spaceBelow >= estimatedPopupHeight + 28) {
+        finalPosition = 'bottom';
+      }
+    }
   }
   
-  document.body.appendChild(popup);
+  // Apply final positioning with better calculations
+  if (finalPosition === 'bottom') {
+    popup.style.left = `${finalLeft}px`;
+    // Ensure popup doesn't go below viewport, with extra buffer
+    const maxTop = viewport.height - estimatedPopupHeight - 20;
+    popup.style.top = `${Math.min(selectionRect.bottom + 8, maxTop)}px`;
+    popup.classList.add('bt-popup-bottom');
+    popup.classList.remove('bt-popup-top');
+  } else {
+    popup.style.left = `${finalLeft}px`;
+    // Ensure popup doesn't go above viewport, with extra buffer
+    const maxBottom = viewport.height - selectionRect.top + 8;
+    const minBottom = estimatedPopupHeight + 20;
+    popup.style.bottom = `${Math.min(maxBottom, viewport.height - minBottom)}px`;
+    popup.classList.add('bt-popup-top');
+    popup.classList.remove('bt-popup-bottom');
+  }
   selectionPopup = popup;
+  
+  // Store selectionRect for later use in readjustment
+  popup._selectionRect = selectionRect;
+
+  // Ensure popup stays within viewport bounds after positioning
+  ensurePopupInViewport(popup, selectionRect);
+  
+  // Schedule readjustment after content loads
+  readjustPopupAfterContentLoad(popup, selectionRect);
+  
+  // Final arrow position adjustment is now handled in ensurePopupInViewport
 
   // Make draggable
   const header = popup.querySelector('.bt-selection-header');
@@ -1437,6 +1750,14 @@ async function showTranslationPopup(selectionRect, text, iconPosition) {
       console.error('Failed to copy:', err);
     }
   });
+  
+  } catch (error) {
+    console.log('TransKit: Error showing translation popup:', error.message);
+    // Extension context might be invalidated, clean up
+    if (error.message.includes('Extension context invalidated')) {
+      cleanupExtensionElements();
+    }
+  }
 }
 
 function hideTranslationPopup() {
@@ -1460,6 +1781,8 @@ async function translateSelectionWithSource(text, sourceLang, popup, providerId 
   if (sourceLang !== 'auto' && sourceLang === targetLang) {
     translatedDiv.textContent = text;
     translatedDiv.classList.remove('bt-loading-text');
+    // Readjust popup position after content change
+    setTimeout(() => ensurePopupInViewport(popup, popup._selectionRect), 50);
     return;
   }
   
@@ -1481,8 +1804,15 @@ async function translateSelectionWithSource(text, sourceLang, popup, providerId 
       translatedDiv.textContent = res?.error || i18n.t("toast.translationFailed");
       translatedDiv.classList.remove('bt-loading-text');
     }
+    
+    // Readjust popup position after content is loaded
+    setTimeout(() => ensurePopupInViewport(popup, popup._selectionRect), 50);
+    
   } catch (err) {
     translatedDiv.textContent = 'Error: ' + err.message;
+    translatedDiv.classList.remove('bt-loading-text');
+    // Readjust popup position even on error
+    setTimeout(() => ensurePopupInViewport(popup, popup._selectionRect), 50);
   }
 }
 
