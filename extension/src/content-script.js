@@ -57,29 +57,19 @@ window.addEventListener('unhandledrejection', (event) => {
     if (!isExtensionContextValid()) {
       console.log('TransKit: Extension context not available during bootstrap');
       return;
-  const mod = await import(chrome.runtime.getURL("src/common/language-map.js"));
-  normalizeLanguageToCode = mod.normalizeLanguageToCode;
-  
-  const i18nMod = await import(chrome.runtime.getURL("src/common/i18n.js"));
-  i18n = i18nMod.i18n;
-
-  const ttsMod = await import(chrome.runtime.getURL("src/services/tts.js"));
-  tts = ttsMod.tts;
-  
-  // Initialize i18n with current settings
-  getSettings().then(settings => {
-    if (settings.interfaceLanguage) {
-      i18n.setLanguage(settings.interfaceLanguage);
     }
-    
+
     // Wrap all chrome.runtime calls in try-catch
-    let mod, i18nMod;
+    let mod, i18nMod, ttsMod;
     try {
       mod = await import(chrome.runtime.getURL("src/common/language-map.js"));
       normalizeLanguageToCode = mod.normalizeLanguageToCode;
       
       i18nMod = await import(chrome.runtime.getURL("src/common/i18n.js"));
       i18n = i18nMod.i18n;
+
+      ttsMod = await import(chrome.runtime.getURL("src/services/tts.js"));
+      tts = ttsMod.tts;
     } catch (importError) {
       if (importError.message.includes('Extension context invalidated') || 
           importError.message.includes('Could not establish connection')) {
@@ -1955,13 +1945,7 @@ async function showTranslationPopup(selectionRect, text, iconPosition) {
     }
   });
   
-  } catch (error) {
-    console.log('TransKit: Error showing translation popup:', error.message);
-    // Extension context might be invalidated, clean up
-    if (error.message.includes('Extension context invalidated')) {
-      cleanupExtensionElements();
-    }
-  }
+
 
   // TTS Handlers
   popup.querySelector('.bt-speak-source').addEventListener('click', async (e) => {
@@ -1999,6 +1983,14 @@ async function showTranslationPopup(selectionRect, text, iconPosition) {
       }
     }
   });
+
+  } catch (error) {
+    console.log('TransKit: Error showing translation popup:', error.message);
+    // Extension context might be invalidated, clean up
+    if (error.message.includes('Extension context invalidated')) {
+      cleanupExtensionElements();
+    }
+  }
 }
 
 function hideTranslationPopup() {
