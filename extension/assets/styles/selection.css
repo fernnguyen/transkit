@@ -1,3 +1,6 @@
+@import url("./tokens.css");
+@import url("./common.css");
+
 /* Select-to-Translate Styles */
 
 .bt-translate-icon {
@@ -32,13 +35,14 @@
   all: initial;
   display: flex;
   flex-direction: column;
-  position: absolute;
-  /* Responsive width: expand for longer content */
+  position: fixed; /* Changed from absolute to fixed for better viewport control */
+  /* Responsive width: expand for longer content but respect viewport */
   min-width: 320px;
-  max-width: min(520px, 90vw);
+  max-width: min(520px, calc(100vw - 40px)); /* Ensure 20px margin on each side */
   width: max-content;
-  /* Limit height with scroll */
-  max-height: min(70vh, 600px);
+  /* Limit height with scroll and ensure it fits in viewport */
+  min-height: 150px; /* Ensure minimum height for content */
+  max-height: min(70vh, calc(100vh - 40px)); /* Ensure 20px margin top/bottom */
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(4px);
   border: 1px solid #e5e7eb;
@@ -50,8 +54,13 @@
   --bt-arrow-size: 8px;
   --bt-arrow-left: 50%;
   z-index: 2147483647;
+  /* Ensure popup is always on top, even above DevTools panels */
+  position: fixed !important;
   overflow: hidden; /* Contain the background pattern */
   box-sizing: border-box;
+  /* Better text wrapping for long content */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .bt-selection-popup * {
@@ -156,6 +165,8 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  /* Ensure content doesn't take up all space, leaving room for footer */
+  min-height: 0; /* Allow flex shrinking */
   /* Smooth scroll */
   scroll-behavior: smooth;
   /* Custom scrollbar */
@@ -212,12 +223,12 @@
 
 .bt-selection-copy-btn {
   position: absolute;
-  right: 0.1rem;
-  bottom: 0.1rem;
+  right: 0.25rem;
+  bottom: 0.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.2rem;
+  padding: 0.25rem;
   background: var(--bt-color-white);
   border: 1px solid var(--bt-color-border-default);
   border-radius: var(--bt-radius-small);
@@ -225,10 +236,15 @@
   cursor: pointer;
   transition: all 0.2s ease;
   z-index: 2;
+  /* Ensure button has minimum size */
+  min-width: 24px;
+  min-height: 24px;
+  /* Add shadow to make it stand out from text */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .bt-selection-copy-btn:hover {
-  color: var(--bt-color-primary);
+  color: var(--bt-color-primary-background);
   border-color: var(--bt-color-primary-border);
   background: var(--bt-color-primary-background);
   box-shadow: var(--bt-shadow-default);
@@ -263,6 +279,7 @@
   border-radius: var(--bt-radius-small);
   font-size: var(--bt-font-size-small);
   background: var(--bt-color-background-default);
+  color: var(--bt-color-text-default);
   cursor: pointer;
   transition: border-color 0.2s ease;
 }
@@ -274,7 +291,7 @@
 
 .bt-native-lang {
   font-weight: 500;
-  color: var(--bt-color-primary);
+  color: var(--bt-color-primary-background);
 }
 
 .bt-selection-text-container {
@@ -289,6 +306,20 @@
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: #d1d5db transparent;
+  /* Better text wrapping for long selections */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  /* Ensure text doesn't force popup to be too wide */
+  max-width: 100%;
+}
+
+/* Override padding for translated text that has copy button */
+.bt-selection-result-container .bt-selection-text {
+  /* Add extra padding-right to make room for copy button */
+  padding-right: 2.5rem; /* Space for copy button + margin */
+  /* Ensure minimum height to accommodate copy button */
+  min-height: 2.5rem;
 }
 
 .bt-selection-text-container::-webkit-scrollbar {
@@ -332,7 +363,7 @@
 }
 
 .bt-selection-settings {
-  color: var(--bt-color-primary);
+  color: var(--bt-color-primary-background);
   text-decoration: none;
   transition: opacity 0.2s ease;
   font-weight: 500;
