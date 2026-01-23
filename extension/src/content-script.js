@@ -1,5 +1,6 @@
 let normalizeLanguageToCode;
 let i18n;
+let tts;
 
 const TRANSLATION_COMMAND_PATTERN = /!!([a-zA-ZÀ-ÿ\-]+)$/i;
 
@@ -33,6 +34,9 @@ const commonStyles = {
   
   const i18nMod = await import(chrome.runtime.getURL("src/common/i18n.js"));
   i18n = i18nMod.i18n;
+
+  const ttsMod = await import(chrome.runtime.getURL("src/services/tts.js"));
+  tts = ttsMod.tts;
   
   // Initialize i18n with current settings
   getSettings().then(settings => {
@@ -1279,7 +1283,16 @@ async function showTranslationPopup(selectionRect, text, iconPosition) {
           ${i18n.t("selection.original")}
           <select class="bt-selection-source-select"></select>
         </label>
-        <div class="bt-selection-text bt-selection-content-style">${text}</div>
+        <div class="bt-selection-text-container bt-selection-content-style">
+          <button class="bt-speak-btn bt-speak-source" title="Listen">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path class="bt-wave-2" d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+              <path class="bt-wave-1" d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            </svg>
+          </button>
+          <div class="bt-selection-text-content">${text}</div>
+        </div>
       </div>
       <div class="bt-selection-translated">
         <label>
@@ -1287,7 +1300,16 @@ async function showTranslationPopup(selectionRect, text, iconPosition) {
           <select class="bt-selection-target-select"></select>
         </label>
         <div class="bt-selection-result-container">
-          <div class="bt-selection-text bt-loading-text bt-selection-content-style">${i18n.t("dialog.translating")}</div>
+          <div class="bt-selection-text-container bt-selection-content-style">
+            <button class="bt-speak-btn bt-speak-target" title="Listen">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path class="bt-wave-2" d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                <path class="bt-wave-1" d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              </svg>
+            </button>
+            <div class="bt-selection-text-content bt-loading-text">${i18n.t("dialog.translating")}</div>
+          </div>
           <button class="bt-selection-copy-btn" title="${i18n.t("selection.copy")}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             <span class="bt-copy-feedback">${i18n.t("selection.copied")}</span>
@@ -1426,7 +1448,7 @@ async function showTranslationPopup(selectionRect, text, iconPosition) {
   // Copy button
   const copyBtn = popup.querySelector('.bt-selection-copy-btn');
   copyBtn.addEventListener('click', async () => {
-    const textToCopy = popup.querySelector('.bt-selection-translated .bt-selection-text').textContent;
+    const textToCopy = popup.querySelector('.bt-selection-translated .bt-selection-text-content').textContent;
     if (!textToCopy || textToCopy === i18n.t("dialog.translating")) return;
 
     try {
@@ -1435,6 +1457,43 @@ async function showTranslationPopup(selectionRect, text, iconPosition) {
       setTimeout(() => copyBtn.classList.remove('bt-copied'), 2000);
     } catch (err) {
       console.error('Failed to copy:', err);
+    }
+  });
+
+  // TTS Handlers
+  popup.querySelector('.bt-speak-source').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    if (btn.classList.contains('bt-speak-loading')) return;
+
+    const sourceLang = popup.querySelector('.bt-selection-source-select').value;
+    const textToSpeak = text; // Original text
+    
+    btn.classList.add('bt-speak-loading');
+    try {
+      await tts.play(textToSpeak, sourceLang === 'auto' ? 'en' : sourceLang);
+    } catch (err) {
+      console.error("TTS Error:", err);
+    } finally {
+      btn.classList.remove('bt-speak-loading');
+    }
+  });
+
+  popup.querySelector('.bt-speak-target').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    if (btn.classList.contains('bt-speak-loading')) return;
+
+    const targetLang = popup.querySelector('.bt-selection-target-select').value;
+    const textToSpeak = popup.querySelector('.bt-selection-translated .bt-selection-text-content').textContent;
+    
+    if (textToSpeak && textToSpeak !== i18n.t("dialog.translating")) {
+      btn.classList.add('bt-speak-loading');
+      try {
+        await tts.play(textToSpeak, targetLang);
+      } catch (err) {
+        console.error("TTS Error:", err);
+      } finally {
+        btn.classList.remove('bt-speak-loading');
+      }
     }
   });
 }
@@ -1451,7 +1510,7 @@ async function translateSelectionWithSource(text, sourceLang, popup, providerId 
   const nativeLang = settings.nativeLanguageCode || 'vi';
   const targetLang = targetLangOverride || nativeLang;
   
-  const translatedDiv = popup.querySelector('.bt-selection-translated .bt-selection-text');
+  const translatedDiv = popup.querySelector('.bt-selection-translated .bt-selection-text-content');
   
   translatedDiv.textContent = i18n.t("dialog.translating");
   translatedDiv.classList.add('bt-loading-text');
