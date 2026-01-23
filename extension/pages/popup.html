@@ -42,6 +42,7 @@
         <div class="bt-tab active" data-tab="general" data-i18n="popup.tabGeneral">General</div>
         <div class="bt-tab" data-tab="instant" data-i18n="popup.tabInstant">Instant</div>
         <div class="bt-tab" data-tab="ai-provider" data-i18n="popup.tabAIProvider">AI Provider</div>
+        <div class="bt-tab" data-tab="tts" data-i18n="popup.tabTTS">TTS</div>
         <div class="bt-tab" data-tab="help" data-i18n="popup.tabHelp">Help</div>
       </div>
 
@@ -338,6 +339,50 @@
               <label for="user-custom-prompt" data-i18n="popup.userPrompt">Your Custom Context (Optional)</label>
               <textarea id="user-custom-prompt" class="bt-input" maxlength="500" rows="4" placeholder="" data-i18n-placeholder="popup.promptPlaceholder"></textarea>
               <small class="bt-char-counter"><span id="prompt-char-count">0</span>/500</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- TTS Tab Content -->
+        <div id="tab-tts" class="bt-tab-content">
+          <div class="bt-section-title" data-i18n="popup.ttsSettings">Text to Speech</div>
+          <div class="bt-section-desc" data-i18n="popup.ttsDesc">Configure TTS providers for audio playback.</div>
+          
+          <div id="tts-provider-list" class="bt-provider-list">
+            <!-- TTS Providers injected here -->
+          </div>
+
+          <button id="btn-add-tts-provider" class="bt-button bt-button-outline bt-w-full" style="margin-top: 12px;">
+            <span class="bt-icon-plus">+</span> <span data-i18n="popup.addProvider">Add Provider</span>
+          </button>
+
+          <!-- TTS Provider Form (Hidden by default) -->
+          <div id="tts-provider-form" class="bt-provider-form" hidden>
+            <div class="bt-form-header">
+              <h3 id="tts-form-title">Add TTS Provider</h3>
+            </div>
+            
+            <div class="bt-field">
+              <label>Type</label>
+              <select id="tts-form-type" class="bt-input">
+                <option value="custom">Custom URL</option>
+              </select>
+            </div>
+
+            <div class="bt-field">
+              <label>Name</label>
+              <input type="text" id="tts-form-name" class="bt-input" placeholder="My TTS" />
+            </div>
+
+            <div class="bt-field">
+              <label>URL Template</label>
+              <input type="text" id="tts-form-url" class="bt-input" placeholder="https://api.tts.com?text={text}&lang={lang}" />
+              <small style="color: #666;">Available variables: {text}, {lang}, {speed}</small>
+            </div>
+
+            <div class="bt-actions bt-row">
+              <button id="tts-form-cancel" class="bt-button bt-button-outline">Cancel</button>
+              <button id="tts-form-save" class="bt-button">Save</button>
             </div>
           </div>
         </div>

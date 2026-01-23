@@ -222,4 +222,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     chrome.runtime.openOptionsPage();
     return true;
   }
+  if (message?.type === "tts-play") {
+    ensureOffscreen().then(async () => {
+      try {
+        await chrome.runtime.sendMessage({
+          type: "play-tts",
+          payload: message.payload
+        });
+        sendResponse({ ok: true });
+      } catch (err) {
+        sendResponse({ ok: false, error: String(err) });
+      }
+    });
+    return true;
+  }
 });

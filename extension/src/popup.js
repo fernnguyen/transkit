@@ -76,6 +76,10 @@ let providers = [];
 let activeProviderId = "builtin";
 let editingProviderId = null;
 
+let ttsProviders = [];
+let activeTTSProviderId = "google-tts";
+let editingTTSProviderId = null;
+
 const LANGUAGES = [
   { code: "en", name: "English" },
   { code: "pt", name: "Portuguese" },
@@ -491,6 +495,142 @@ btnFormCancel.addEventListener("click", closeProviderForm);
 btnFormSave.addEventListener("click", saveProviderFromForm);
 formType.addEventListener("change", () => renderFormFields(formType.value));
 
+// ============================================
+// TTS Provider Logic
+// ============================================
+
+const ttsProviderListEl = document.querySelector("#tts-provider-list");
+const btnAddTTSProvider = document.querySelector("#btn-add-tts-provider");
+const ttsProviderForm = document.querySelector("#tts-provider-form");
+const ttsFormTitle = document.querySelector("#tts-form-title");
+const ttsFormName = document.querySelector("#tts-form-name");
+const ttsFormUrl = document.querySelector("#tts-form-url");
+const btnTTSFormCancel = document.querySelector("#tts-form-cancel");
+const btnTTSFormSave = document.querySelector("#tts-form-save");
+
+function renderTTSProviderList() {
+  if (!ttsProviderListEl) return;
+  ttsProviderListEl.innerHTML = "";
+  
+  // Default Google TTS (cannot be deleted)
+  const googleTTS = { id: "google-tts", name: "Google TTS", type: "google", readonly: true };
+  
+  // Combine default and custom
+  const allProviders = [googleTTS, ...ttsProviders];
+  
+  allProviders.forEach(p => {
+    const isActive = p.id === activeTTSProviderId;
+    
+    const el = document.createElement("div");
+    el.className = `bt-provider-item ${isActive ? 'active' : ''}`;
+    
+    // Actions
+    let actionsHtml = '';
+    if (isActive) {
+      actionsHtml += `<span class="bt-badge-active">${i18n.t("popup.active")}</span>`;
+    } else {
+      actionsHtml += `<button class="bt-btn-text btn-set-active-tts" data-id="${p.id}">${i18n.t("popup.use")}</button>`;
+    }
+    
+    if (!p.readonly) {
+      actionsHtml += `<button class="bt-btn-text btn-edit-tts" data-id="${p.id}">${i18n.t("popup.edit")}</button>`;
+      actionsHtml += `<button class="bt-btn-text btn-delete-tts" data-id="${p.id}">${i18n.t("popup.delete")}</button>`;
+    }
+
+    el.innerHTML = `
+      <div class="bt-provider-info">
+        <div class="bt-provider-name">${p.name}</div>
+        <div class="bt-provider-type">${p.type === 'google' ? 'Standard' : 'Custom URL'}</div>
+      </div>
+      <div class="bt-provider-actions">
+        ${actionsHtml}
+      </div>
+    `;
+    ttsProviderListEl.appendChild(el);
+  });
+
+  // Attach events
+  ttsProviderListEl.querySelectorAll(".btn-set-active-tts").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      activeTTSProviderId = e.target.dataset.id;
+      renderTTSProviderList();
+      saveSettings();
+    });
+  });
+
+  ttsProviderListEl.querySelectorAll(".btn-delete-tts").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      if (confirm("Delete this TTS provider?")) {
+        ttsProviders = ttsProviders.filter(p => p.id !== e.target.dataset.id);
+        if (activeTTSProviderId === e.target.dataset.id) {
+          activeTTSProviderId = "google-tts";
+        }
+        renderTTSProviderList();
+        saveSettings();
+      }
+    });
+  });
+
+  ttsProviderListEl.querySelectorAll(".btn-edit-tts").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const p = ttsProviders.find(item => item.id === e.target.dataset.id);
+      if (p) openTTSProviderForm(p);
+    });
+  });
+}
+
+function openTTSProviderForm(provider = null) {
+  editingTTSProviderId = provider ? provider.id : null;
+  ttsFormTitle.textContent = provider ? "Edit TTS Provider" : "Add TTS Provider";
+  ttsFormName.value = provider ? provider.name : "";
+  ttsFormUrl.value = provider ? provider.url : "";
+  
+  ttsProviderListEl.parentElement.hidden = true;
+  ttsProviderForm.hidden = false;
+  saveBtn.style.display = 'none';
+}
+
+function closeTTSProviderForm() {
+  ttsProviderForm.hidden = true;
+  ttsProviderListEl.parentElement.hidden = false;
+  editingTTSProviderId = null;
+  saveBtn.style.display = 'block';
+}
+
+function saveTTSProviderFromForm() {
+  const name = ttsFormName.value.trim() || "Custom TTS";
+  const url = ttsFormUrl.value.trim();
+  
+  if (!url) {
+    alert("URL Template is required");
+    return;
+  }
+
+  if (editingTTSProviderId) {
+    const idx = ttsProviders.findIndex(p => p.id === editingTTSProviderId);
+    if (idx !== -1) {
+      ttsProviders[idx].name = name;
+      ttsProviders[idx].url = url;
+    }
+  } else {
+    const newId = crypto.randomUUID();
+    ttsProviders.push({
+      id: newId,
+      type: "custom",
+      name,
+      url
+    });
+  }
+  
+  saveSettings();
+  renderTTSProviderList();
+  closeTTSProviderForm();
+}
+
+if (btnAddTTSProvider) btnAddTTSProvider.addEventListener("click", () => openTTSProviderForm(null));
+if (btnTTSFormCancel) btnTTSFormCancel.addEventListener("click", closeTTSProviderForm);
+if (btnTTSFormSave) btnTTSFormSave.addEventListener("click", saveTTSProviderFromForm);
+
 function updateSettingsVisibility() {
   if (enabledCheckbox.checked) {
     settingsContainer.removeAttribute("disabled");
@@ -571,6 +711,10 @@ async function loadSettings() {
     ];
     activeProviderId = res.settings.activeProviderId || "builtin";
 
+    // Load TTS Providers
+    ttsProviders = res.settings.ttsProviders || [];
+    activeTTSProviderId = res.settings.activeTTSProviderId || "google-tts";
+
     // Load Custom Prompt
     if (userCustomPrompt) {
       userCustomPrompt.value = res.settings.customPrompt || "";
@@ -643,6 +787,9 @@ async function loadSettings() {
     providers = [{ id: "builtin", type: "gemini-nano", name: "Chrome Built-in AI", config: {} }];
     activeProviderId = "builtin";
 
+    ttsProviders = [];
+    activeTTSProviderId = "google-tts";
+
     // Default custom prompt
     if (userCustomPrompt) {
       userCustomPrompt.value = "";
@@ -664,6 +811,7 @@ async function loadSettings() {
   renderAliases();
   renderDomains();
   renderProviderList();
+  renderTTSProviderList();
   updateSettingsVisibility();
   toggleInstantSettings();
 }
@@ -683,6 +831,9 @@ async function saveSettings() {
     // New Provider Structure
     providers,
     activeProviderId,
+    // TTS Settings
+    ttsProviders,
+    activeTTSProviderId,
     // Custom Prompt
     customPrompt: userCustomPrompt?.value || "",
     // Keyboard shortcut
@@ -845,7 +996,7 @@ document.querySelectorAll('.bt-tab').forEach(tab => {
       saveBtn.style.display = 'none';
     } else {
       // Only show if not in provider form
-      if (providerForm.hidden) {
+      if (providerForm.hidden && ttsProviderForm.hidden) {
         saveBtn.style.display = 'block';
       }
     }
