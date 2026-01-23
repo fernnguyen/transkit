@@ -296,9 +296,27 @@ async function toggleHoverDomainForCurrentUrl() {
     const settings = await getSettings();
     const currentUrl = window.location.href;
 
+    if (!settings.hoverTranslateDomains) {
+      settings.hoverTranslateDomains = [];
+    }
+
     const matchingDomainIndex = settings.hoverTranslateDomains.findIndex(
       d => currentUrl.includes(d.domain)
     );
+
+    // If global setting is disabled, enable it and FORCE enable the domain
+    if (!settings.hoverTranslateEnabled) {
+      settings.hoverTranslateEnabled = true;
+      
+      if (matchingDomainIndex !== -1) {
+        // Force enable if it exists
+        settings.hoverTranslateDomains[matchingDomainIndex].enabled = true;
+      }
+      // If it doesn't exist, it will be added below
+    } else if (matchingDomainIndex !== -1) {
+      // Global is already on, so we just toggle the domain
+      settings.hoverTranslateDomains[matchingDomainIndex].enabled = !settings.hoverTranslateDomains[matchingDomainIndex].enabled;
+    }
 
     if (matchingDomainIndex === -1) {
       // Auto-add domain
@@ -318,9 +336,8 @@ async function toggleHoverDomainForCurrentUrl() {
       return;
     }
 
-    // Toggle enabled state
+    // Get the domain object
     const domain = settings.hoverTranslateDomains[matchingDomainIndex];
-    domain.enabled = !domain.enabled;
 
     await chrome.runtime.sendMessage({
       type: "set-settings",
