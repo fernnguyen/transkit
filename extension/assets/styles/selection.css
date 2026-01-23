@@ -128,6 +128,10 @@
   font-size: var(--bt-font-size-medium);
   color: var(--bt-color-text-default);
 }
+.bt-selection-title span{
+  margin-top: 2px;
+  float:right;
+}
 
 .bt-selection-close {
   background: none;
