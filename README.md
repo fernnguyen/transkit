@@ -33,7 +33,7 @@ For developers and early adopters who want to run from source:
 
 1.  **Clone the repository**:
     ```bash
-    git clone http://github.com/fernnguyen/transkit.git
+    git clone http://github.com/transkit-app/transkit-extension.git
     ```
 2.  **Open Chrome Extensions**:
     - Navigate to `chrome://extensions/` in your browser.
